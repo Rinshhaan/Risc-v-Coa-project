@@ -1,1660 +1,2453 @@
 <!DOCTYPE html>
 
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RISC-V Project — Instruction Formats & Execution Simulator</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Syne:wght@400;700;800&display=swap');
-
-:root {
-–bg: grey;
-–surface: #0c1020;
-–card: #101828;
-–border: #1c2b45;
-–border2: #243554;
-–accent: #38bdf8;
-–green: #4ade80;
-–orange: #fb923c;
-–red: #f87171;
-–yellow: #fbbf24;
-–purple: #c084fc;
-–pink: #f472b6;
-–text: #cbd5e1;
-–muted: #475569;
-–white: #f1f5f9;
-–r-col: #f87171;
-–i-col: #fb923c;
-–s-col: #fbbf24;
-–b-col: #4ade80;
-–u-col: #38bdf8;
-–j-col: #c084fc;
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html { scroll-behavior: smooth; }
-
-body {
-background: var(–bg);
-color: var(–text);
-font-family: ‘Syne’, sans-serif;
-min-height: 100vh;
-overflow-x: hidden;
-}
-
-/* GRID BG */
-body::after {
-content: ‘’;
-position: fixed;
-inset: 0;
-background:
-radial-gradient(ellipse 80% 50% at 20% 10%, #38bdf808 0%, transparent 60%),
-radial-gradient(ellipse 60% 40% at 80% 80%, #c084fc06 0%, transparent 60%),
-linear-gradient(rgba(56,189,248,.025) 1px, transparent 1px),
-linear-gradient(90deg, rgba(56,189,248,.025) 1px, transparent 1px);
-background-size: auto, auto, 48px 48px, 48px 48px;
-pointer-events: none;
-z-index: 0;
-}
-
-.wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 1; }
-
-/* ─── HERO ─── */
-.hero {
-padding: 60px 20px 40px;
-text-align: center;
-position: relative;
-z-index: 1;
-}
-
-.hero-chip {
-display: inline-flex;
-align-items: center;
-gap: 8px;
-background: #38bdf812;
-border: 1px solid #38bdf830;
-color: var(–accent);
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 11px;
-letter-spacing: 2px;
-padding: 6px 16px;
-border-radius: 40px;
-margin-bottom: 24px;
-}
-
-.dot { width: 6px; height: 6px; border-radius: 50%; background: var(–accent); animation: blink 1.4s infinite; }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-
-h1 {
-font-size: clamp(32px, 6vw, 64px);
-font-weight: 800;
-line-height: 1.05;
-margin-bottom: 14px;
-color: var(–white);
-}
-
-h1 span {
-background: linear-gradient(90deg, #38bdf8, #c084fc, #f472b6);
--webkit-background-clip: text;
--webkit-text-fill-color: transparent;
-background-clip: text;
-}
-
-.hero-sub {
-color: var(–muted);
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 13px;
-letter-spacing: 0.5px;
-max-width: 560px;
-margin: 0 auto 32px;
-line-height: 1.7;
-}
-
-.author-bar {
-display: inline-flex;
-align-items: center;
-gap: 20px;
-background: var(–card);
-border: 1px solid var(–border);
-border-radius: 12px;
-padding: 12px 24px;
-font-size: 13px;
-flex-wrap: wrap;
-justify-content: center;
-}
-.author-bar span { color: var(–muted); }
-.author-bar strong { color: var(–white); }
-.divider-dot { color: var(–border2); }
-
-/* ─── NAV ─── */
-nav {
-position: sticky;
-top: 0;
-z-index: 100;
-background: #06080fee;
-backdrop-filter: blur(20px);
-border-bottom: 1px solid var(–border);
-padding: 0 20px;
-}
-
-.nav-inner {
-max-width: 1120px;
-margin: 0 auto;
-display: flex;
-gap: 2px;
-overflow-x: auto;
-}
-
-.nav-btn {
-background: none;
-border: none;
-color: var(–muted);
-font-family: ‘Syne’, sans-serif;
-font-size: 12px;
-font-weight: 700;
-letter-spacing: 1px;
-padding: 14px 18px;
-cursor: pointer;
-white-space: nowrap;
-border-bottom: 2px solid transparent;
-transition: all 0.2s;
-}
-.nav-btn:hover { color: var(–text); }
-.nav-btn.active { color: var(–accent); border-bottom-color: var(–accent); }
-
-/* ─── SECTION WRAPPER ─── */
-.section {
-display: none;
-animation: sectionIn 0.35s cubic-bezier(.4,0,.2,1);
-}
-.section.active { display: block; }
-@keyframes sectionIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
-
-.section-wrap { padding: 40px 20px 60px; max-width: 1120px; margin: 0 auto; }
-
-.section-head {
-margin-bottom: 32px;
-}
-.section-head h2 {
-font-size: clamp(22px,4vw,34px);
-font-weight: 800;
-color: var(–white);
-margin-bottom: 6px;
-}
-.section-head p {
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 12px;
-color: var(–muted);
-line-height: 1.7;
-}
-
-/* ─── CARDS ─── */
-.card {
-background: var(–card);
-border: 1px solid var(–border);
-border-radius: 16px;
-padding: 24px;
-}
-
-.card-sm { padding: 16px 20px; }
-
-/* ─── FORMAT SECTION ─── */
-.formats-grid {
-display: grid;
-grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-gap: 16px;
-margin-bottom: 32px;
-}
-
-.fmt-card {
-background: var(–card);
-border: 1px solid var(–border);
-border-radius: 14px;
-padding: 22px;
-cursor: pointer;
-transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-position: relative;
-overflow: hidden;
-}
-.fmt-card::after {
-content: ‘’;
-position: absolute;
-top: 0; left: 0; right: 0;
-height: 2px;
-}
-.fmt-card.r::after { background: var(–r-col); }
-.fmt-card.i::after { background: var(–i-col); }
-.fmt-card.s::after { background: var(–s-col); }
-.fmt-card.b::after { background: var(–b-col); }
-.fmt-card.u::after { background: var(–u-col); }
-.fmt-card.j::after { background: var(–j-col); }
-
-.fmt-card:hover { transform: translateY(-2px); border-color: var(–border2); }
-.fmt-card.selected { box-shadow: 0 0 0 1px var(–accent); border-color: var(–accent); }
-
-.fmt-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-
-.fmt-badge {
-width: 44px; height: 44px;
-border-radius: 12px;
-display: flex; align-items: center; justify-content: center;
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 22px; font-weight: 700;
-}
-.r .fmt-badge { background: #f8717115; color: var(–r-col); }
-.i .fmt-badge { background: #fb923c15; color: var(–i-col); }
-.s .fmt-badge { background: #fbbf2415; color: var(–s-col); }
-.b .fmt-badge { background: #4ade8015; color: var(–b-col); }
-.u .fmt-badge { background: #38bdf815; color: var(–u-col); }
-.j .fmt-badge { background: #c084fc15; color: var(–j-col); }
-
-.fmt-name { font-size: 15px; font-weight: 700; color: var(–white); }
-.fmt-sub  { font-size: 11px; color: var(–muted); margin-top: 2px; font-family: ‘JetBrains Mono’, monospace; }
-
-/* Bit layout row */
-.bit-row {
-display: flex;
-border-radius: 8px;
-overflow: hidden;
-border: 1px solid var(–border);
-margin: 12px 0;
-}
-
-.bit-field {
-padding: 6px 4px;
-text-align: center;
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 9px;
-line-height: 1.4;
-transition: filter 0.2s;
-}
-.bit-field:hover { filter: brightness(1.5); }
-
-.bf-op  { background: #38bdf810; color: var(–accent);  flex: 7; }
-.bf-rd  { background: #4ade8010; color: var(–green);   flex: 5; }
-.bf-f3  { background: #fbbf2410; color: var(–yellow);  flex: 3; }
-.bf-rs1 { background: #fb923c10; color: var(–orange);  flex: 5; }
-.bf-rs2 { background: #f8717110; color: var(–red);     flex: 5; }
-.bf-f7  { background: #c084fc10; color: var(–purple);  flex: 7; }
-.bf-imm12 { background: #38bdf810; color: var(–u-col); flex: 12; }
-.bf-imm7  { background: #38bdf810; color: var(–u-col); flex: 7; }
-.bf-imm5  { background: #38bdf815; color: #67e8f9;      flex: 5; }
-.bf-imm20 { background: #38bdf810; color: var(–u-col); flex: 20; }
-.bf-immj  { background: #38bdf810; color: var(–u-col); flex: 20; }
-
-.fmt-example {
-background: #ffffff05;
-border: 1px solid var(–border);
-border-radius: 8px;
-padding: 10px 14px;
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 12px;
-color: var(–green);
-margin-top: 10px;
-}
-
-.fmt-desc { font-size: 12px; color: var(–muted); line-height: 1.65; margin-top: 10px; }
-
-/* Field legend */
-.legend {
-display: flex;
-flex-wrap: wrap;
-gap: 8px;
-margin-top: 8px;
-}
-.legend-item {
-display: flex;
-align-items: center;
-gap: 5px;
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 10px;
-color: var(–muted);
-}
-.legend-dot {
-width: 8px; height: 8px;
-border-radius: 2px;
-}
-
-/* ─── SIMULATOR SECTION ─── */
-.sim-layout {
-display: grid;
-grid-template-columns: 1fr 1fr;
-gap: 20px;
-}
-@media(max-width:700px){ .sim-layout{grid-template-columns:1fr;} }
-
-.sim-panel {
-background: var(–card);
-border: 1px solid var(–border);
-border-radius: 14px;
-overflow: hidden;
-}
-
-.sim-header {
-padding: 14px 20px;
-border-bottom: 1px solid var(–border);
-display: flex;
-align-items: center;
-gap: 10px;
-background: #ffffff03;
-}
-
-.sim-title {
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 11px;
-letter-spacing: 2px;
-color: var(–muted);
-}
-
-.sim-body { padding: 20px; }
-
-label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: var(–muted); margin-bottom: 8px; }
-
-select, input[type=number], input[type=text] {
-width: 100%;
-background: var(–surface);
-border: 1px solid var(–border2);
-border-radius: 8px;
-color: var(–white);
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 13px;
-padding: 10px 14px;
-outline: none;
-transition: border-color 0.2s;
-margin-bottom: 14px;
-}
-select:focus, input:focus { border-color: var(–accent); }
-option { background: var(–surface); }
-
-.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-.run-btn {
-width: 100%;
-background: linear-gradient(135deg, #38bdf820, #c084fc20);
-border: 1px solid var(–accent);
-color: var(–accent);
-font-family: ‘Syne’, sans-serif;
-font-weight: 700;
-font-size: 14px;
-padding: 13px;
-border-radius: 10px;
-cursor: pointer;
-letter-spacing: 1px;
-transition: all 0.2s;
-margin-top: 4px;
-}
-.run-btn:hover { background: linear-gradient(135deg, #38bdf835, #c084fc35); transform: translateY(-1px); }
-.run-btn:active { transform: none; }
-
-/* Output display */
-.out-block {
-background: var(–surface);
-border: 1px solid var(–border);
-border-radius: 10px;
-padding: 16px;
-margin-bottom: 14px;
-font-family: ‘JetBrains Mono’, monospace;
-}
-
-.out-label {
-font-size: 9px;
-letter-spacing: 2px;
-color: var(–muted);
-margin-bottom: 8px;
-}
-
-.out-val {
-font-size: 13px;
-color: var(–white);
-word-break: break-all;
-line-height: 1.7;
-}
-
-.binary-display {
-display: flex;
-flex-wrap: wrap;
-gap: 3px;
-margin-top: 10px;
-}
-
-.b-group {
-display: flex;
-gap: 1px;
-}
-
-.b-bit {
-width: 18px;
-height: 26px;
-display: flex;
-align-items: center;
-justify-content: center;
-border-radius: 4px;
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 11px;
-font-weight: 700;
-transition: all 0.3s;
-}
-
-.b-bit.one  { background: #38bdf820; color: var(–accent); }
-.b-bit.zero { background: #ffffff08; color: var(–muted); }
-
-.hex-big {
-font-size: 28px;
-font-weight: 700;
-color: var(–accent);
-letter-spacing: 2px;
-font-family: ‘JetBrains Mono’, monospace;
-}
-
-.field-breakdown {
-margin-top: 12px;
-}
-
-.fb-row {
-display: flex;
-justify-content: space-between;
-align-items: center;
-padding: 6px 0;
-border-bottom: 1px solid var(–border);
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 12px;
-}
-.fb-row:last-child { border-bottom: none; }
-.fb-key { color: var(–muted); }
-.fb-val { color: var(–white); font-weight: 700; }
-.fb-bin { color: var(–accent); font-size: 10px; }
-
-/* ─── EXECUTION CYCLE ─── */
-.cycle-wrap { }
-
-.pipeline-vis {
-display: grid;
-grid-template-columns: repeat(5, 1fr);
-gap: 0;
-margin: 24px 0;
-border: 1px solid var(–border);
-border-radius: 14px;
-overflow: hidden;
-}
-
-.pipe-stage {
-padding: 20px 12px;
-text-align: center;
-border-right: 1px solid var(–border);
-cursor: pointer;
-transition: background 0.25s;
-position: relative;
-}
-.pipe-stage:last-child { border-right: none; }
-.pipe-stage:hover { background: #ffffff05; }
-.pipe-stage.lit { background: linear-gradient(180deg, #38bdf812, transparent); }
-
-.pipe-stage::after {
-content: ‘▶’;
-position: absolute;
-right: -11px;
-top: 50%;
-transform: translateY(-50%);
-color: var(–border2);
-font-size: 14px;
-z-index: 2;
-}
-.pipe-stage:last-child::after { display: none; }
-
-.ps-num { font-family: ‘JetBrains Mono’, monospace; font-size: 9px; color: var(–muted); letter-spacing: 1px; margin-bottom: 8px; }
-.ps-abbr { font-size: 22px; font-weight: 800; color: var(–white); margin-bottom: 4px; }
-.ps-name { font-size: 10px; color: var(–muted); line-height: 1.4; }
-
-.pipe-stage.lit .ps-abbr { color: var(–accent); }
-.pipe-stage.lit .ps-num  { color: var(–accent); }
-
-/* Step runner */
-.step-runner {
-background: var(–card);
-border: 1px solid var(–border);
-border-radius: 14px;
-overflow: hidden;
-margin-bottom: 20px;
-}
-
-.step-tabs {
-display: flex;
-border-bottom: 1px solid var(–border);
-overflow-x: auto;
-}
-
-.step-tab {
-padding: 12px 20px;
-font-size: 12px;
-font-weight: 700;
-letter-spacing: 0.5px;
-color: var(–muted);
-cursor: pointer;
-border-bottom: 2px solid transparent;
-white-space: nowrap;
-transition: all 0.2s;
-background: none;
-border-top: none;
-border-left: none;
-border-right: none;
-font-family: ‘Syne’, sans-serif;
-}
-.step-tab:hover { color: var(–text); }
-.step-tab.active { color: var(–accent); border-bottom-color: var(–accent); background: #38bdf808; }
-
-.step-content { padding: 24px; display: none; }
-.step-content.active { display: block; animation: sectionIn .3s ease; }
-
-.step-content h3 {
-font-size: 18px;
-font-weight: 800;
-color: var(–white);
-margin-bottom: 16px;
-display: flex;
-align-items: center;
-gap: 10px;
-}
-
-.info-grid {
-display: grid;
-grid-template-columns: 1fr 1fr;
-gap: 12px;
-margin-top: 16px;
-}
-@media(max-width:540px){ .info-grid{grid-template-columns:1fr;} }
-
-.info-box {
-background: var(–surface);
-border: 1px solid var(–border);
-border-radius: 10px;
-padding: 14px 16px;
-}
-.info-box.wide { grid-column: 1 / -1; }
-.ib-label { font-family: ‘JetBrains Mono’, monospace; font-size: 9px; color: var(–muted); letter-spacing: 2px; margin-bottom: 7px; }
-.ib-val   { font-size: 13px; color: var(–text); line-height: 1.65; }
-.ib-code  { font-family: ‘JetBrains Mono’, monospace; font-size: 12px; color: var(–green); }
-
-/* Cycle trace table */
-.trace-table {
-width: 100%;
-border-collapse: separate;
-border-spacing: 0 4px;
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 12px;
-}
-.trace-table th {
-font-size: 9px;
-letter-spacing: 2px;
-color: var(–muted);
-text-align: left;
-padding: 6px 14px;
-}
-.trace-table td {
-padding: 10px 14px;
-background: var(–surface);
-}
-.trace-table td:first-child { border-radius: 8px 0 0 8px; }
-.trace-table td:last-child  { border-radius: 0 8px 8px 0; }
-.trace-highlight { color: var(–accent); font-weight: 700; }
-
-/* register file display */
-.reg-grid {
-display: grid;
-grid-template-columns: repeat(4, 1fr);
-gap: 6px;
-margin-top: 12px;
-}
-@media(max-width:500px){ .reg-grid{ grid-template-columns: repeat(2,1fr); } }
-
-.reg-cell {
-background: var(–surface);
-border: 1px solid var(–border);
-border-radius: 7px;
-padding: 8px 10px;
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 11px;
-display: flex;
-justify-content: space-between;
-align-items: center;
-transition: border-color 0.3s, background 0.3s;
-}
-.reg-cell.changed { border-color: var(–green); background: #4ade8010; }
-.reg-name { color: var(–muted); }
-.reg-val  { color: var(–white); font-weight: 700; }
-
-/* ─── TABLE SECTION ─── */
-.ref-table {
-width: 100%;
-border-collapse: separate;
-border-spacing: 0 6px;
-font-size: 13px;
-}
-.ref-table th {
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 9px;
-letter-spacing: 2px;
-color: var(–muted);
-text-align: left;
-padding: 8px 16px;
-}
-.ref-table td {
-padding: 13px 16px;
-background: var(–card);
-border-top: 1px solid var(–border);
-border-bottom: 1px solid var(–border);
-font-size: 12px;
-line-height: 1.6;
-}
-.ref-table td:first-child { border-left: 1px solid var(–border); border-radius: 10px 0 0 10px; }
-.ref-table td:last-child  { border-right: 1px solid var(–border); border-radius: 0 10px 10px 0; }
-.ref-table tr:hover td { border-color: var(–border2); }
-
-.ftag {
-display: inline-block;
-padding: 3px 10px;
-border-radius: 5px;
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 13px;
-font-weight: 700;
-}
-.r-tag { background: #f8717115; color: var(–r-col); }
-.i-tag { background: #fb923c15; color: var(–i-col); }
-.s-tag { background: #fbbf2415; color: var(–s-col); }
-.b-tag { background: #4ade8015; color: var(–b-col); }
-.u-tag { background: #38bdf815; color: var(–u-col); }
-.j-tag { background: #c084fc15; color: var(–j-col); }
-
-code {
-background: #ffffff0a;
-border: 1px solid var(–border);
-border-radius: 4px;
-padding: 1px 6px;
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 11px;
-color: var(–green);
-}
-
-/* ─── ABOUT SECTION ─── */
-.about-grid {
-display: grid;
-grid-template-columns: 1fr 1fr;
-gap: 20px;
-}
-@media(max-width:700px){ .about-grid{grid-template-columns:1fr;} }
-
-.timeline {
-position: relative;
-padding-left: 24px;
-}
-.timeline::before {
-content: ‘’;
-position: absolute;
-left: 7px; top: 8px; bottom: 8px;
-width: 1px;
-background: var(–border2);
-}
-.tl-item {
-position: relative;
-margin-bottom: 20px;
-}
-.tl-item::before {
-content: ‘’;
-position: absolute;
-left: -20px;
-top: 6px;
-width: 8px; height: 8px;
-border-radius: 50%;
-background: var(–accent);
-}
-.tl-title { font-size: 14px; font-weight: 700; color: var(–white); margin-bottom: 4px; }
-.tl-text  { font-size: 12px; color: var(–muted); line-height: 1.65; }
-
-/* status badge */
-.status {
-display: inline-flex; align-items: center; gap: 6px;
-font-family: ‘JetBrains Mono’, monospace; font-size: 11px;
-padding: 3px 10px; border-radius: 20px;
-}
-.status.ok { background: #4ade8015; color: var(–green); border: 1px solid #4ade8030; }
-.status.info { background: #38bdf815; color: var(–accent); border: 1px solid #38bdf830; }
-
-footer {
-text-align: center;
-padding: 40px 20px;
-border-top: 1px solid var(–border);
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 11px;
-color: var(–muted);
-position: relative;
-z-index: 1;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RISC-V Project — Instruction Formats & Execution Simulator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Syne:wght@400;700;800&display=swap');
+
+        :root {
+            --bg: #030712;
+            --surface: #0a0e1a;
+            --card: #111827;
+            --border: #1f2937;
+            --border2: #374151;
+            --accent: #38bdf8;
+            --green: #10b981;
+            --orange: #f97316;
+            --red: #ef4444;
+            --yellow: #f59e0b;
+            --purple: #8b5cf6;
+            --pink: #ec4899;
+            --text: #94a3b8;
+            --muted: #475569;
+            --white: #f8fafc;
+            --r-col: #ef4444;
+            --i-col: #f97316;
+            --s-col: #f59e0b;
+            --b-col: #10b981;
+            --u-col: #38bdf8;
+            --j-col: #8b5cf6;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Syne', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* GRID BG */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .wrap {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 0 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ─── HERO ─── */
+        .hero {
+            padding: 60px 20px 40px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            padding: 8px 20px;
+            border-radius: 40px;
+            margin-bottom: 24px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(–accent);
+            animation: blink 1.4s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.2
+            }
+        }
+
+        h1 {
+            font-size: clamp(32px, 6vw, 64px);
+            font-weight: 800;
+            line-height: 1.05;
+            margin-bottom: 14px;
+            color: var(–white);
+        }
+
+        h1 span {
+            background: linear-gradient(90deg, #38bdf8, #c084fc, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-sub {
+            color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(12px, 2vw, 15px);
+            letter-spacing: 0.5px;
+            max-width: 700px;
+            margin: 0 auto 40px;
+            line-height: 1.8;
+            opacity: 0.8;
+        }
+
+        .author-bar {
+            display: inline-flex;
+            align-items: center;
+            gap: 20px;
+            background: var(–card);
+            border: 1px solid var(–border);
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-size: 13px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .author-bar span {
+            color: var(–muted);
+        }
+
+        .author-bar strong {
+            color: var(–white);
+        }
+
+        .divider-dot {
+            color: var(–border2);
+        }
+
+        /* ─── NAV ─── */
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 10px;
+        }
+
+        .nav-inner {
+            max-width: 1120px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .nav-inner::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(11px, 1.2vw, 13px);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            padding: 16px clamp(12px, 2vw, 24px);
+            cursor: pointer;
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-btn:hover {
+            color: var(--white);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .nav-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+            background: rgba(56, 189, 248, 0.08);
+        }
+
+        /* ─── SECTION WRAPPER ─── */
+        .section {
+            display: none;
+            animation: sectionIn 0.35s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes sectionIn {
+            from {
+                opacity: 0;
+                transform: translateY(14px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .section-wrap {
+            padding: 40px 20px 60px;
+            max-width: 1120px;
+            margin: 0 auto;
+        }
+
+        .section-head {
+            margin-bottom: 32px;
+        }
+
+        .section-head h2 {
+            font-size: clamp(22px, 4vw, 34px);
+            font-weight: 800;
+            color: var(–white);
+            margin-bottom: 6px;
+        }
+
+        .section-head p {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(11px, 1.5vw, 13px);
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        /* ─── CARDS ─── */
+        .card {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-sm {
+            padding: 16px 20px;
+        }
+
+        /* ─── FORMAT SECTION ─── */
+        .formats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .fmt-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px;
+            cursor: pointer;
+            transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fmt-card::after {
+            content: ‘’;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+        }
+
+        .fmt-card.r::after {
+            background: var(--r-col);
+        }
+
+        .fmt-card.i::after {
+            background: var(--i-col);
+        }
+
+        .fmt-card.s::after {
+            background: var(--s-col);
+        }
+
+        .fmt-card.b::after {
+            background: var(--b-col);
+        }
+
+        .fmt-card.u::after {
+            background: var(--u-col);
+        }
+
+        .fmt-card.j::after {
+            background: var(--j-col);
+        }
+
+        .fmt-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border2);
+        }
+
+        .fmt-card.selected {
+            box-shadow: 0 0 0 1px var(--accent);
+            border-color: var(--accent);
+        }
+
+        .fmt-top {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .fmt-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .r .fmt-badge {
+            background: #f8717115;
+            color: var(--r-col);
+        }
+
+        .i .fmt-badge {
+            background: #fb923c15;
+            color: var(--i-col);
+        }
+
+        .s .fmt-badge {
+            background: #fbbf2415;
+            color: var(--s-col);
+        }
+
+        .b .fmt-badge {
+            background: #4ade8015;
+            color: var(--b-col);
+        }
+
+        .u .fmt-badge {
+            background: #38bdf815;
+            color: var(--u-col);
+        }
+
+        .j .fmt-badge {
+            background: #c084fc15;
+            color: var(--j-col);
+        }
+
+        .fmt-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--white);
+        }
+
+        .fmt-sub {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 2px;
+            font-family: ‘JetBrains Mono’, monospace;
+        }
+
+        /* Bit layout row */
+        .bit-row {
+            display: flex;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            scrollbar-width: none;
+        }
+
+        .bit-row::-webkit-scrollbar {
+            display: none;
+        }
+
+        .bit-field {
+            padding: 8px 6px;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            min-width: 45px;
+            line-height: 1.4;
+            transition: all 0.2s;
+        }
+
+        .bit-field:hover {
+            filter: brightness(1.5);
+        }
+
+        .bf-op {
+            background: #38bdf810;
+            color: var(--accent);
+            flex: 7;
+        }
+
+        .bf-rd {
+            background: #4ade8010;
+            color: var(--green);
+            flex: 5;
+        }
+
+        .bf-f3 {
+            background: #fbbf2410;
+            color: var(--yellow);
+            flex: 3;
+        }
+
+        .bf-rs1 {
+            background: #fb923c10;
+            color: var(--orange);
+            flex: 5;
+        }
+
+        .bf-rs2 {
+            background: #f8717110;
+            color: var(--red);
+            flex: 5;
+        }
+
+        .bf-f7 {
+            background: #c084fc10;
+            color: var(--purple);
+            flex: 7;
+        }
+
+        .bf-imm12 {
+            background: #38bdf810;
+            color: var(--u-col);
+            flex: 12;
+        }
+
+        .bf-imm7 {
+            background: #38bdf810;
+            color: var(--u-col);
+            flex: 7;
+        }
+
+        .bf-imm5 {
+            background: #38bdf815;
+            color: #67e8f9;
+            flex: 5;
+        }
+
+        .bf-imm20 {
+            background: #38bdf810;
+            color: var(--u-col);
+            flex: 20;
+        }
+
+        .bf-immj {
+            background: #38bdf810;
+            color: var(--u-col);
+            flex: 20;
+        }
+
+        .fmt-example {
+            background: #ffffff05;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 12px;
+            color: var(--green);
+            margin-top: 10px;
+        }
+
+        .fmt-desc {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.65;
+            margin-top: 10px;
+        }
+
+        /* Field legend */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+        }
+
+        /* ─── SIMULATOR SECTION ─── */
+        .sim-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+        }
+
+        @media(max-width:400px) {
+            .sim-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .sim-panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .sim-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .sim-title {
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: var(–muted);
+        }
+
+        .sim-body {
+            padding: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: var(–muted);
+            margin-bottom: 8px;
+        }
+
+        select,
+        input[type=number],
+        input[type=text] {
+            width: 100%;
+            background: var(–surface);
+            border: 1px solid var(–border2);
+            border-radius: 8px;
+            color: var(–white);
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 13px;
+            padding: 10px 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            margin-bottom: 14px;
+        }
+
+        select:focus,
+        input:focus {
+            border-color: var(–accent);
+        }
+
+        option {
+            background: var(–surface);
+        }
+
+        .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .run-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #38bdf820, #c084fc20);
+            border: 1px solid var(–accent);
+            color: var(–accent);
+            font-family: ‘Syne’, sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 13px;
+            border-radius: 10px;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            margin-top: 4px;
+        }
+
+        .run-btn:hover {
+            background: linear-gradient(135deg, #38bdf835, #c084fc35);
+            transform: translateY(-1px);
+        }
+
+        .run-btn:active {
+            transform: none;
+        }
+
+        /* Output display */
+        .out-block {
+            background: var(–surface);
+            border: 1px solid var(–border);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 14px;
+            font-family: ‘JetBrains Mono’, monospace;
+        }
+
+        .out-label {
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(–muted);
+            margin-bottom: 8px;
+        }
+
+        .out-val {
+            font-size: 13px;
+            color: var(–white);
+            word-break: break-all;
+            line-height: 1.7;
+        }
+
+        .binary-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            margin-top: 10px;
+        }
+
+        .b-group {
+            display: flex;
+            gap: 1px;
+        }
+
+        .b-bit {
+            width: 18px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 11px;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+
+        .b-bit.one {
+            background: #38bdf820;
+            color: var(–accent);
+        }
+
+        .b-bit.zero {
+            background: #ffffff08;
+            color: var(–muted);
+        }
+
+        .hex-big {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(–accent);
+            letter-spacing: 2px;
+            font-family: ‘JetBrains Mono’, monospace;
+        }
+
+        .field-breakdown {
+            margin-top: 12px;
+        }
+
+        .fb-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid var(–border);
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 12px;
+        }
+
+        .fb-row:last-child {
+            border-bottom: none;
+        }
+
+        .fb-key {
+            color: var(–muted);
+        }
+
+        .fb-val {
+            color: var(–white);
+            font-weight: 700;
+        }
+
+        .fb-bin {
+            color: var(–accent);
+            font-size: 10px;
+        }
+
+        /* ─── EXECUTION CYCLE ─── */
+        .cycle-wrap {}
+
+        .pipeline-vis {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0;
+            margin: 24px 0;
+            border: 1px solid var(–border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .pipe-stage {
+            padding: 20px 12px;
+            text-align: center;
+            border-right: 1px solid var(–border);
+            cursor: pointer;
+            transition: background 0.25s;
+            position: relative;
+        }
+
+        .pipe-stage:last-child {
+            border-right: none;
+        }
+
+        .pipe-stage:hover {
+            background: #ffffff05;
+        }
+
+        .pipe-stage.lit {
+            background: linear-gradient(180deg, #38bdf812, transparent);
+        }
+
+        .pipe-stage::after {
+            content: ‘▶’;
+            position: absolute;
+            right: -11px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(–border2);
+            font-size: 14px;
+            z-index: 2;
+        }
+
+        .pipe-stage:last-child::after {
+            display: none;
+        }
+
+        .ps-num {
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 9px;
+            color: var(–muted);
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .ps-abbr {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(–white);
+            margin-bottom: 4px;
+        }
+
+        .ps-name {
+            font-size: 10px;
+            color: var(–muted);
+            line-height: 1.4;
+        }
+
+        .pipe-stage.lit .ps-abbr {
+            color: var(–accent);
+        }
+
+        .pipe-stage.lit .ps-num {
+            color: var(–accent);
+        }
+
+        /* Step runner */
+        .step-runner {
+            background: var(–card);
+            border: 1px solid var(–border);
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .step-tabs {
+            display: flex;
+            border-bottom: 1px solid var(–border);
+            overflow-x: auto;
+        }
+
+        .step-tab {
+            padding: 12px 20px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(–muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+            transition: all 0.2s;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            font-family: ‘Syne’, sans-serif;
+        }
+
+        .step-tab:hover {
+            color: var(–text);
+        }
+
+        .step-tab.active {
+            color: var(–accent);
+            border-bottom-color: var(–accent);
+            background: #38bdf808;
+        }
+
+        .step-content {
+            padding: 24px;
+            display: none;
+        }
+
+        .step-content.active {
+            display: block;
+            animation: sectionIn .3s ease;
+        }
+
+        .step-content h3 {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(–white);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        @media(max-width:540px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .info-box {
+            background: var(–surface);
+            border: 1px solid var(–border);
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+
+        .info-box.wide {
+            grid-column: 1 / -1;
+        }
+
+        .ib-label {
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 9px;
+            color: var(–muted);
+            letter-spacing: 2px;
+            margin-bottom: 7px;
+        }
+
+        .ib-val {
+            font-size: 13px;
+            color: var(–text);
+            line-height: 1.65;
+        }
+
+        .ib-code {
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 12px;
+            color: var(–green);
+        }
+
+        /* Cycle trace table */
+        .trace-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 4px;
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 12px;
+        }
+
+        .trace-table th {
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(–muted);
+            text-align: left;
+            padding: 6px 14px;
+        }
+
+        .trace-table td {
+            padding: 10px 14px;
+            background: var(–surface);
+        }
+
+        .trace-table td:first-child {
+            border-radius: 8px 0 0 8px;
+        }
+
+        .trace-table td:last-child {
+            border-radius: 0 8px 8px 0;
+        }
+
+        .trace-highlight {
+            color: var(–accent);
+            font-weight: 700;
+        }
+
+        /* register file display */
+        .reg-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .reg-cell {
+            background: var(–surface);
+            border: 1px solid var(–border);
+            border-radius: 7px;
+            padding: 8px 10px;
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: border-color 0.3s, background 0.3s;
+        }
+
+        .reg-cell.changed {
+            border-color: var(–green);
+            background: #4ade8010;
+        }
+
+        .reg-name {
+            color: var(–muted);
+        }
+
+        .reg-val {
+            color: var(–white);
+            font-weight: 700;
+        }
+
+        /* ─── TABLE SECTION ─── */
+        .ref-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 6px;
+            font-size: 13px;
+        }
+
+        .ref-table th {
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(–muted);
+            text-align: left;
+            padding: 8px 16px;
+        }
+
+        .ref-table td {
+            padding: 13px 16px;
+            background: var(–card);
+            border-top: 1px solid var(–border);
+            border-bottom: 1px solid var(–border);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .ref-table td:first-child {
+            border-left: 1px solid var(–border);
+            border-radius: 10px 0 0 10px;
+        }
+
+        .ref-table td:last-child {
+            border-right: 1px solid var(–border);
+            border-radius: 0 10px 10px 0;
+        }
+
+        .ref-table tr:hover td {
+            border-color: var(–border2);
+        }
+
+        .ftag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 5px;
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .r-tag {
+            background: #f8717115;
+            color: var(–r-col);
+        }
+
+        .i-tag {
+            background: #fb923c15;
+            color: var(–i-col);
+        }
+
+        .s-tag {
+            background: #fbbf2415;
+            color: var(–s-col);
+        }
+
+        .b-tag {
+            background: #4ade8015;
+            color: var(–b-col);
+        }
+
+        .u-tag {
+            background: #38bdf815;
+            color: var(–u-col);
+        }
+
+        .j-tag {
+            background: #c084fc15;
+            color: var(–j-col);
+        }
+
+        code {
+            background: #ffffff0a;
+            border: 1px solid var(–border);
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 11px;
+            color: var(–green);
+        }
+
+        /* ─── ABOUT SECTION ─── */
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media(max-width:700px) {
+            .about-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 24px;
+        }
+
+        .timeline::before {
+            content: ‘’;
+            position: absolute;
+            left: 7px;
+            top: 8px;
+            bottom: 8px;
+            width: 1px;
+            background: var(–border2);
+        }
+
+        .tl-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .tl-item::before {
+            content: ‘’;
+            position: absolute;
+            left: -20px;
+            top: 6px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(–accent);
+        }
+
+        .tl-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(–white);
+            margin-bottom: 4px;
+        }
+
+        .tl-text {
+            font-size: 12px;
+            color: var(–muted);
+            line-height: 1.65;
+        }
+
+        /* status badge */
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: ‘JetBrains Mono’, monospace;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+        .status.ok {
+            background: #10b98115;
+            color: var(--green);
+            border: 1px solid #10b98130;
+        }
+
+        .status.info {
+            background: #38bdf815;
+            color: var(--accent);
+            border: 1px solid #38bdf830;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            border-top: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--muted);
+            position: relative;
+            z-index: 1;
+        }
+    </style>
 
 </head>
+
 <body>
 
-<!-- HERO -->
+    <!-- HERO -->
 
-<div class="hero">
-  <div class="hero-chip"><div class="dot"></div>LIVE PROJECT DEMO</div>
-  <h1>RISC-V <span>Instruction Formats</span><br>& Execution Engine</h1>
-  <p class="hero-sub">// A complete interactive COA project — encode any instruction, visualize bit fields, simulate the 5-stage execution cycle, and trace register states.</p>
-  <div class="author-bar">
-    <div><span>Subject </span><strong>Computer Organization & Architecture</strong></div>
-    <div class="divider-dot">•</div>
-    <div><span>University </span><strong>APJ Abdul Kalam Technological University</strong></div>
-    <div class="divider-dot">•</div>
-    <div><span>Semester </span><strong>4th Sem B.Tech AI & DS</strong></div>
-  </div>
-</div>
-
-<!-- NAV -->
-
-<nav>
-  <div class="nav-inner">
-    <button class="nav-btn active" onclick="goTo('formats', this)">📐 Formats</button>
-    <button class="nav-btn" onclick="goTo('simulator', this)">⚡ Simulator</button>
-    <button class="nav-btn" onclick="goTo('cycle', this)">⚙️ Execution Cycle</button>
-    <button class="nav-btn" onclick="goTo('reference', this)">📋 Reference Table</button>
-    <button class="nav-btn" onclick="goTo('about', this)">📖 About</button>
-  </div>
-</nav>
-
-<!-- ═══════════ FORMATS ═══════════ -->
-
-<div class="section active" id="sec-formats">
-<div class="section-wrap">
-  <div class="section-head">
-    <h2>Instruction Format Architecture</h2>
-    <p>// All RISC-V base instructions are exactly 32 bits. The 6 formats define how those 32 bits are partitioned into fields. Hover over bit fields to inspect them.</p>
-  </div>
-
-  <div class="formats-grid">
-
-```
-<!-- R -->
-<div class="fmt-card r" onclick="highlightFmt(this)">
-  <div class="fmt-top">
-    <div class="fmt-badge">R</div>
-    <div>
-      <div class="fmt-name">R-Type Format</div>
-      <div class="fmt-sub">REGISTER — REGISTER OPERATIONS</div>
-    </div>
-  </div>
-  <div class="bit-row">
-    <div class="bit-field bf-f7"  title="7 bits: differentiates operations">funct7<br>7b</div>
-    <div class="bit-field bf-rs2" title="5 bits: source register 2">rs2<br>5b</div>
-    <div class="bit-field bf-rs1" title="5 bits: source register 1">rs1<br>5b</div>
-    <div class="bit-field bf-f3"  title="3 bits: sub-operation">f3<br>3b</div>
-    <div class="bit-field bf-rd"  title="5 bits: destination register">rd<br>5b</div>
-    <div class="bit-field bf-op"  title="7 bits: major opcode">opcode<br>7b</div>
-  </div>
-  <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#c084fc"></div>funct7: selects exact op</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div>rs2: second source reg</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#fb923c"></div>rs1: first source reg</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div>rd: result destination</div>
-  </div>
-  <div class="fmt-example">ADD x1, x2, x3   →   x1 = x2 + x3</div>
-  <div class="fmt-example">SUB x4, x5, x6   →   x4 = x5 − x6</div>
-  <div class="fmt-desc">Used for ALU operations between two registers. No immediate value. funct7 + funct3 together distinguish ~30+ operations from the same opcode group.</div>
-</div>
-
-<!-- I -->
-<div class="fmt-card i" onclick="highlightFmt(this)">
-  <div class="fmt-top">
-    <div class="fmt-badge">I</div>
-    <div>
-      <div class="fmt-name">I-Type Format</div>
-      <div class="fmt-sub">IMMEDIATE / LOAD OPERATIONS</div>
-    </div>
-  </div>
-  <div class="bit-row">
-    <div class="bit-field bf-imm12" title="12 bits: signed immediate">imm[11:0] — 12 bits</div>
-    <div class="bit-field bf-rs1" title="5 bits: base register">rs1<br>5b</div>
-    <div class="bit-field bf-f3"  title="3 bits: sub-operation">f3<br>3b</div>
-    <div class="bit-field bf-rd"  title="5 bits: destination">rd<br>5b</div>
-    <div class="bit-field bf-op"  title="7 bits: opcode">opcode<br>7b</div>
-  </div>
-  <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div>imm: 12-bit signed constant (−2048 to +2047)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#fb923c"></div>rs1: source register</div>
-  </div>
-  <div class="fmt-example">ADDI x1, x2, 10   →   x1 = x2 + 10</div>
-  <div class="fmt-example">LW   x1, 8(x2)    →   x1 = Mem[x2+8]</div>
-  <div class="fmt-desc">One source register plus a 12-bit sign-extended immediate. Used for loads (LW, LH, LB), immediate arithmetic (ADDI, SLTI), logical immediates, and JALR.</div>
-</div>
-
-<!-- S -->
-<div class="fmt-card s" onclick="highlightFmt(this)">
-  <div class="fmt-top">
-    <div class="fmt-badge">S</div>
-    <div>
-      <div class="fmt-name">S-Type Format</div>
-      <div class="fmt-sub">STORE OPERATIONS</div>
-    </div>
-  </div>
-  <div class="bit-row">
-    <div class="bit-field bf-imm7" title="upper 7 bits of immediate">imm[11:5]<br>7b</div>
-    <div class="bit-field bf-rs2"  title="5 bits: data to store">rs2<br>5b</div>
-    <div class="bit-field bf-rs1"  title="5 bits: base address reg">rs1<br>5b</div>
-    <div class="bit-field bf-f3"   title="3 bits: width — byte/half/word">f3<br>3b</div>
-    <div class="bit-field bf-imm5" title="lower 5 bits of immediate">imm[4:0]<br>5b</div>
-    <div class="bit-field bf-op"   title="7 bits: opcode">opcode<br>7b</div>
-  </div>
-  <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div>imm: split across bits [31:25] and [11:7]</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div>rs2: data register (what to store)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#fb923c"></div>rs1: base address register</div>
-  </div>
-  <div class="fmt-example">SW x2, 8(x1)   →   Mem[x1 + 8] = x2</div>
-  <div class="fmt-example">SB x3, 0(x4)   →   Mem[x4] = x3[7:0]</div>
-  <div class="fmt-desc">No rd field — stores do not write to registers. The immediate is deliberately split to keep rs1/rs2 at the same bit positions as other formats, simplifying hardware decode.</div>
-</div>
-
-<!-- B -->
-<div class="fmt-card b" onclick="highlightFmt(this)">
-  <div class="fmt-top">
-    <div class="fmt-badge">B</div>
-    <div>
-      <div class="fmt-name">B-Type Format</div>
-      <div class="fmt-sub">BRANCH / CONDITIONAL JUMP</div>
-    </div>
-  </div>
-  <div class="bit-row">
-    <div class="bit-field bf-imm7" title="bits 12 and 10:5 of offset">imm[12,10:5]<br>7b</div>
-    <div class="bit-field bf-rs2"  title="5 bits: second compare reg">rs2<br>5b</div>
-    <div class="bit-field bf-rs1"  title="5 bits: first compare reg">rs1<br>5b</div>
-    <div class="bit-field bf-f3"   title="3 bits: condition type">f3<br>3b</div>
-    <div class="bit-field bf-imm5" title="bits 4:1 and 11 of offset">imm[4:1,11]<br>5b</div>
-    <div class="bit-field bf-op"   title="7 bits: opcode">opcode<br>7b</div>
-  </div>
-  <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div>imm: PC-relative offset (multiples of 2)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div>f3: selects condition (EQ/NE/LT/GE…)</div>
-  </div>
-  <div class="fmt-example">BEQ  x1, x2, LOOP   →   if x1 == x2: PC += offset</div>
-  <div class="fmt-example">BLT  x3, x4, END    →   if x3 &lt; x4:  PC += offset</div>
-  <div class="fmt-desc">Variant of S-type. Immediate encodes a signed PC-relative byte offset. Bit 0 of offset is always 0 (instructions are 4-byte aligned). Supports ±4KB branch range.</div>
-</div>
-
-<!-- U -->
-<div class="fmt-card u" onclick="highlightFmt(this)">
-  <div class="fmt-top">
-    <div class="fmt-badge">U</div>
-    <div>
-      <div class="fmt-name">U-Type Format</div>
-      <div class="fmt-sub">UPPER IMMEDIATE</div>
-    </div>
-  </div>
-  <div class="bit-row">
-    <div class="bit-field bf-imm20" title="20 bits: upper immediate">imm[31:12] — 20 bits</div>
-    <div class="bit-field bf-rd"   title="5 bits: destination register">rd<br>5b</div>
-    <div class="bit-field bf-op"   title="7 bits: opcode">opcode<br>7b</div>
-  </div>
-  <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div>imm: loaded into bits [31:12] of rd</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div>Lower 12 bits of rd are set to 0</div>
-  </div>
-  <div class="fmt-example">LUI   x1, 0x12345   →   x1 = 0x12345000</div>
-  <div class="fmt-example">AUIPC x1, 0x10      →   x1 = PC + 0x10000</div>
-  <div class="fmt-desc">Simplest format. Used to build 32-bit constants: LUI sets upper 20 bits, then ADDI sets lower 12. AUIPC adds the upper immediate to the current PC for position-independent code.</div>
-</div>
-
-<!-- J -->
-<div class="fmt-card j" onclick="highlightFmt(this)">
-  <div class="fmt-top">
-    <div class="fmt-badge">J</div>
-    <div>
-      <div class="fmt-name">J-Type Format</div>
-      <div class="fmt-sub">UNCONDITIONAL JUMP</div>
-    </div>
-  </div>
-  <div class="bit-row">
-    <div class="bit-field bf-immj" title="20-bit scrambled immediate for jump offset">imm[20,10:1,11,19:12] — 20 bits</div>
-    <div class="bit-field bf-rd"  title="5 bits: return address destination">rd<br>5b</div>
-    <div class="bit-field bf-op"  title="7 bits: opcode">opcode<br>7b</div>
-  </div>
-  <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div>imm: 21-bit PC-relative offset (bit 0 = 0)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div>rd: stores return address (PC + 4)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#c084fc"></div>Bits are scrambled to share layout with B-type</div>
-  </div>
-  <div class="fmt-example">JAL x1, FUNC   →   x1 = PC+4 ; PC = PC + offset</div>
-  <div class="fmt-desc">Only JAL uses J-type. The 20-bit immediate (21-bit offset with implicit 0 LSB) allows ±1MB jump range. rd=x0 for a plain jump (no return address needed).</div>
-</div>
-```
-
-  </div>
-</div>
-</div>
-
-<!-- ═══════════ SIMULATOR ═══════════ -->
-
-<div class="section" id="sec-simulator">
-<div class="section-wrap">
-  <div class="section-head">
-    <h2>Live Instruction Simulator</h2>
-    <p>// Select an instruction, fill in operands, and RUN — get the 32-bit binary encoding, hex representation, field breakdown, and register state output instantly.</p>
-  </div>
-
-  <div class="sim-layout">
-    <!-- INPUT -->
-    <div class="sim-panel">
-      <div class="sim-header">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-        <div class="sim-title">INSTRUCTION INPUT</div>
-      </div>
-      <div class="sim-body">
-        <label>INSTRUCTION TYPE</label>
-        <select id="instr-sel" onchange="updateInputs()">
-          <optgroup label="R-Type (Register–Register)">
-            <option value="ADD">ADD rd, rs1, rs2</option>
-            <option value="SUB">SUB rd, rs1, rs2</option>
-            <option value="AND">AND rd, rs1, rs2</option>
-            <option value="OR">OR  rd, rs1, rs2</option>
-            <option value="XOR">XOR rd, rs1, rs2</option>
-            <option value="SLL">SLL rd, rs1, rs2</option>
-            <option value="SRL">SRL rd, rs1, rs2</option>
-          </optgroup>
-          <optgroup label="I-Type (Immediate)">
-            <option value="ADDI">ADDI rd, rs1, imm</option>
-            <option value="LW">LW   rd, imm(rs1)</option>
-            <option value="SLTI">SLTI rd, rs1, imm</option>
-            <option value="ANDI">ANDI rd, rs1, imm</option>
-          </optgroup>
-          <optgroup label="S-Type (Store)">
-            <option value="SW">SW rs2, imm(rs1)</option>
-            <option value="SH">SH rs2, imm(rs1)</option>
-            <option value="SB">SB rs2, imm(rs1)</option>
-          </optgroup>
-          <optgroup label="B-Type (Branch)">
-            <option value="BEQ">BEQ rs1, rs2, offset</option>
-            <option value="BNE">BNE rs1, rs2, offset</option>
-            <option value="BLT">BLT rs1, rs2, offset</option>
-            <option value="BGE">BGE rs1, rs2, offset</option>
-          </optgroup>
-          <optgroup label="U-Type (Upper Immediate)">
-            <option value="LUI">LUI rd, imm</option>
-            <option value="AUIPC">AUIPC rd, imm</option>
-          </optgroup>
-          <optgroup label="J-Type (Jump)">
-            <option value="JAL">JAL rd, offset</option>
-          </optgroup>
-        </select>
-
-```
-    <div id="input-fields"></div>
-
-    <button class="run-btn" onclick="runSim()">▶ RUN INSTRUCTION</button>
-  </div>
-</div>
-
-<!-- OUTPUT -->
-<div class="sim-panel">
-  <div class="sim-header">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-    <div class="sim-title">OUTPUT &amp; ENCODING</div>
-  </div>
-  <div class="sim-body" id="sim-output">
-    <div style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center;padding:40px 0;">
-      ← Select an instruction and click RUN
-    </div>
-  </div>
-</div>
-```
-
-  </div>
-
-  <!-- Register State -->
-
-  <div class="card" style="margin-top:20px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div>
-        <div style="font-size:15px;font-weight:700;color:var(--white);">Register File State (x0–x15)</div>
-        <div style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:3px;">// Updated after each RUN. x0 is always 0.</div>
-      </div>
-      <button class="run-btn" style="width:auto;padding:8px 16px;font-size:12px;" onclick="resetRegs()">↺ Reset Registers</button>
-    </div>
-    <div class="reg-grid" id="reg-display"></div>
-  </div>
-</div>
-</div>
-
-<!-- ═══════════ EXECUTION CYCLE ═══════════ -->
-
-<div class="section" id="sec-cycle">
-<div class="section-wrap">
-  <div class="section-head">
-    <h2>5-Stage Execution Cycle</h2>
-    <p>// Every RISC-V instruction flows through 5 pipeline stages. Click a stage tab below to see exactly what hardware is active and what operations occur.</p>
-  </div>
-
-  <!-- Pipeline diagram -->
-
-  <div class="pipeline-vis">
-    <div class="pipe-stage lit" onclick="showStep(0)">
-      <div class="ps-num">STAGE 01</div>
-      <div class="ps-abbr">IF</div>
-      <div class="ps-name">Instruction<br>Fetch</div>
-    </div>
-    <div class="pipe-stage" onclick="showStep(1)">
-      <div class="ps-num">STAGE 02</div>
-      <div class="ps-abbr">ID</div>
-      <div class="ps-name">Instruction<br>Decode</div>
-    </div>
-    <div class="pipe-stage" onclick="showStep(2)">
-      <div class="ps-num">STAGE 03</div>
-      <div class="ps-abbr">EX</div>
-      <div class="ps-name">Execute<br>(ALU)</div>
-    </div>
-    <div class="pipe-stage" onclick="showStep(3)">
-      <div class="ps-num">STAGE 04</div>
-      <div class="ps-abbr">MEM</div>
-      <div class="ps-name">Memory<br>Access</div>
-    </div>
-    <div class="pipe-stage" onclick="showStep(4)">
-      <div class="ps-num">STAGE 05</div>
-      <div class="ps-abbr">WB</div>
-      <div class="ps-name">Write<br>Back</div>
-    </div>
-  </div>
-
-  <!-- Step detail tabs -->
-
-  <div class="step-runner">
-    <div class="step-tabs">
-      <button class="step-tab active" onclick="showStep(0)">① Fetch (IF)</button>
-      <button class="step-tab" onclick="showStep(1)">② Decode (ID)</button>
-      <button class="step-tab" onclick="showStep(2)">③ Execute (EX)</button>
-      <button class="step-tab" onclick="showStep(3)">④ Memory (MEM)</button>
-      <button class="step-tab" onclick="showStep(4)">⑤ Write Back (WB)</button>
-    </div>
-
-```
-<!-- IF -->
-<div class="step-content active" id="step-0">
-  <h3>📡 Instruction Fetch (IF)</h3>
-  <p style="font-size:13px;color:var(--text);line-height:1.7;">The CPU's Program Counter (PC) holds the address of the next instruction. The instruction is read from Instruction Memory at that address. After the fetch, PC is automatically incremented by 4 (since every RISC-V instruction is 4 bytes).</p>
-  <div class="info-grid">
-    <div class="info-box">
-      <div class="ib-label">HARDWARE ACTIVE</div>
-      <div class="ib-val">Program Counter (PC) • Instruction Memory • PC Adder (+4)</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">OPERATION</div>
-      <div class="ib-code">IR ← Mem[PC]<br>PC ← PC + 4</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">EXAMPLE (ADD x1, x2, x3)</div>
-      <div class="ib-val">PC = 0x1000 → fetch 32-bit instruction at 0x1000 → PC becomes 0x1004</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">PIPELINING NOTE</div>
-      <div class="ib-val">In a pipeline, IF runs for the NEXT instruction while the current one is in ID — giving near 1 IPC throughput.</div>
-    </div>
-  </div>
-</div>
-
-<!-- ID -->
-<div class="step-content" id="step-1">
-  <h3>🔍 Instruction Decode (ID)</h3>
-  <p style="font-size:13px;color:var(--text);line-height:1.7;">The fetched 32-bit instruction is split into fields. The opcode is sent to the Control Unit which generates control signals for every stage. Source registers rs1 and rs2 are simultaneously read from the Register File. Immediates are sign-extended to 32 bits.</p>
-  <div class="info-grid">
-    <div class="info-box">
-      <div class="ib-label">HARDWARE ACTIVE</div>
-      <div class="ib-val">Control Unit • Register File (Read Ports) • Sign-Extend Unit</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">OPERATION</div>
-      <div class="ib-code">A ← Reg[rs1]<br>B ← Reg[rs2]<br>imm ← SignExt(imm_bits)<br>ctrl ← decode(opcode, f3, f7)</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">CONTROL SIGNALS GENERATED</div>
-      <div class="ib-val">ALUSrc • MemRead • MemWrite • RegWrite • MemToReg • Branch • ALUOp</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">KEY DESIGN INSIGHT</div>
-      <div class="ib-val">rs1/rs2 are always at the same bit positions [19:15] and [24:20] in ALL formats — this allows register read to happen before full decode is complete.</div>
-    </div>
-  </div>
-</div>
-
-<!-- EX -->
-<div class="step-content" id="step-2">
-  <h3>⚡ Execute (EX)</h3>
-  <p style="font-size:13px;color:var(--text);line-height:1.7;">The ALU performs the core computation. A MUX selects the second ALU input: Register B (for R-type) or Sign-Extended Immediate (for I/S/B/U/J-type). The ALU operation is selected by ALUOp + funct3 + funct7 control signals.</p>
-  <div class="info-grid">
-    <div class="info-box">
-      <div class="ib-label">HARDWARE ACTIVE</div>
-      <div class="ib-val">ALU • ALU Control • MUX (ALUSrc) • Branch Adder</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">OPERATION BY TYPE</div>
-      <div class="ib-code">R-type:  result ← A op B<br>I-type:  result ← A op imm<br>Load/S:  addr   ← A + imm<br>Branch:  cond   ← A == B (etc)</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">EXAMPLE: ADD x1, x2, x3</div>
-      <div class="ib-val">ALU receives values of x2 and x3. ALU performs ADD. Result stored in EX/MEM pipeline register for next stage.</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">EXAMPLE: BEQ x1, x2, LABEL</div>
-      <div class="ib-val">ALU performs subtraction. If result == 0, branch is taken. Branch target = PC + sign_extend(imm).</div>
-    </div>
-  </div>
-</div>
-
-<!-- MEM -->
-<div class="step-content" id="step-3">
-  <h3>💾 Memory Access (MEM)</h3>
-  <p style="font-size:13px;color:var(--text);line-height:1.7;">Only Load and Store instructions actively use this stage. Load reads data from Data Memory at the computed address. Store writes the register value to Data Memory. All other instructions (R, I-arithmetic, Branch, U, J) simply pass through — the EX result is forwarded.</p>
-  <div class="info-grid">
-    <div class="info-box">
-      <div class="ib-label">HARDWARE ACTIVE</div>
-      <div class="ib-val">Data Memory • MemRead/MemWrite control lines</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">OPERATION</div>
-      <div class="ib-code">LOAD:  data ← DataMem[ALU_result]<br>STORE: DataMem[ALU_result] ← B<br>OTHER: pass-through (no memory op)</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">EXAMPLE: LW x1, 8(x2)</div>
-      <div class="ib-val">Address computed in EX as x2+8. In MEM, 4 bytes are read from Data Memory at that address. Value forwarded to WB stage.</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">EXAMPLE: SW x3, 4(x4)</div>
-      <div class="ib-val">Address = x4+4. Value of x3 written to Data Memory. No register is updated — stores never write to the register file.</div>
-    </div>
-  </div>
-</div>
-
-<!-- WB -->
-<div class="step-content" id="step-4">
-  <h3>✍️ Write Back (WB)</h3>
-  <p style="font-size:13px;color:var(--text);line-height:1.7;">The final result is written to the destination register rd in the Register File. A MUX selects the source: ALU result (for arithmetic) or Memory data (for loads). Store and Branch instructions do NOT write to any register at this stage.</p>
-  <div class="info-grid">
-    <div class="info-box">
-      <div class="ib-label">HARDWARE ACTIVE</div>
-      <div class="ib-val">Register File (Write Port) • MUX (MemToReg)</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">OPERATION</div>
-      <div class="ib-code">R/I-arith: Reg[rd] ← ALU_result<br>Load:      Reg[rd] ← mem_data<br>JAL:       Reg[rd] ← PC + 4<br>Store/Branch: (no write)</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">EXAMPLE: ADD x1, x2, x3</div>
-      <div class="ib-val">ALU result (x2 + x3) is selected by MemToReg MUX and written into register x1. Instruction is now complete.</div>
-    </div>
-    <div class="info-box">
-      <div class="ib-label">NOTE: x0 ALWAYS = 0</div>
-      <div class="ib-val">Even if rd = x0, the write is ignored. x0 is hardwired to 0 — a useful RISC-V design choice enabling NOP, moves, and negation.</div>
-    </div>
-  </div>
-</div>
-```
-
-  </div>
-
-  <!-- Pipeline trace -->
-
-  <div class="card">
-    <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:6px;">Pipeline Execution Trace</div>
-    <div style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:16px;">// Shows how 5 instructions overlap in a pipelined processor (1 instruction per clock cycle throughput)</div>
-    <div style="overflow-x:auto;">
-      <table class="trace-table">
-        <thead>
-          <tr>
-            <th>INSTRUCTION</th>
-            <th>CYCLE 1</th><th>CYCLE 2</th><th>CYCLE 3</th><th>CYCLE 4</th><th>CYCLE 5</th><th>CYCLE 6</th><th>CYCLE 7</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style="color:var(--white);font-weight:700;">ADD x1,x2,x3</td>
-            <td class="trace-highlight">IF</td><td class="trace-highlight">ID</td><td class="trace-highlight">EX</td><td class="trace-highlight">MEM</td><td class="trace-highlight">WB</td><td>—</td><td>—</td>
-          </tr>
-          <tr>
-            <td style="color:var(--white);font-weight:700;">ADDI x4,x1,5</td>
-            <td>—</td><td class="trace-highlight">IF</td><td class="trace-highlight">ID</td><td class="trace-highlight">EX</td><td class="trace-highlight">MEM</td><td class="trace-highlight">WB</td><td>—</td>
-          </tr>
-          <tr>
-            <td style="color:var(--white);font-weight:700;">LW x5,0(x1)</td>
-            <td>—</td><td>—</td><td class="trace-highlight">IF</td><td class="trace-highlight">ID</td><td class="trace-highlight">EX</td><td class="trace-highlight">MEM</td><td class="trace-highlight">WB</td>
-          </tr>
-          <tr>
-            <td style="color:var(--white);font-weight:700;">SW x5,4(x1)</td>
-            <td>—</td><td>—</td><td>—</td><td class="trace-highlight">IF</td><td class="trace-highlight">ID</td><td class="trace-highlight">EX</td><td class="trace-highlight">MEM</td>
-          </tr>
-          <tr>
-            <td style="color:var(--white);font-weight:700;">BEQ x1,x2,L</td>
-            <td>—</td><td>—</td><td>—</td><td>—</td><td class="trace-highlight">IF</td><td class="trace-highlight">ID</td><td class="trace-highlight">EX</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-</div>
-
-<!-- ═══════════ REFERENCE TABLE ═══════════ -->
-
-<div class="section" id="sec-reference">
-<div class="section-wrap">
-  <div class="section-head">
-    <h2>Complete Reference Table</h2>
-    <p>// All RISC-V RV32I base instructions with format, opcode, funct fields, and operation description.</p>
-  </div>
-
-  <div style="overflow-x:auto;">
-    <table class="ref-table">
-      <thead>
-        <tr>
-          <th>INSTRUCTION</th><th>FORMAT</th><th>OPCODE</th><th>FUNCT3</th><th>FUNCT7</th><th>OPERATION</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td><code>ADD rd, rs1, rs2</code></td><td><span class="ftag r-tag">R</span></td><td>0110011</td><td>000</td><td>0000000</td><td>rd = rs1 + rs2</td></tr>
-        <tr><td><code>SUB rd, rs1, rs2</code></td><td><span class="ftag r-tag">R</span></td><td>0110011</td><td>000</td><td>0100000</td><td>rd = rs1 − rs2</td></tr>
-        <tr><td><code>AND rd, rs1, rs2</code></td><td><span class="ftag r-tag">R</span></td><td>0110011</td><td>111</td><td>0000000</td><td>rd = rs1 &amp; rs2</td></tr>
-        <tr><td><code>OR  rd, rs1, rs2</code></td><td><span class="ftag r-tag">R</span></td><td>0110011</td><td>110</td><td>0000000</td><td>rd = rs1 | rs2</td></tr>
-        <tr><td><code>XOR rd, rs1, rs2</code></td><td><span class="ftag r-tag">R</span></td><td>0110011</td><td>100</td><td>0000000</td><td>rd = rs1 ^ rs2</td></tr>
-        <tr><td><code>SLL rd, rs1, rs2</code></td><td><span class="ftag r-tag">R</span></td><td>0110011</td><td>001</td><td>0000000</td><td>rd = rs1 &lt;&lt; rs2[4:0]</td></tr>
-        <tr><td><code>SRL rd, rs1, rs2</code></td><td><span class="ftag r-tag">R</span></td><td>0110011</td><td>101</td><td>0000000</td><td>rd = rs1 &gt;&gt; rs2 (logical)</td></tr>
-        <tr><td><code>SRA rd, rs1, rs2</code></td><td><span class="ftag r-tag">R</span></td><td>0110011</td><td>101</td><td>0100000</td><td>rd = rs1 &gt;&gt; rs2 (arithmetic)</td></tr>
-        <tr><td><code>SLT rd, rs1, rs2</code></td><td><span class="ftag r-tag">R</span></td><td>0110011</td><td>010</td><td>0000000</td><td>rd = (rs1 &lt; rs2) ? 1 : 0</td></tr>
-        <tr><td><code>ADDI rd, rs1, imm</code></td><td><span class="ftag i-tag">I</span></td><td>0010011</td><td>000</td><td>—</td><td>rd = rs1 + imm</td></tr>
-        <tr><td><code>SLTI rd, rs1, imm</code></td><td><span class="ftag i-tag">I</span></td><td>0010011</td><td>010</td><td>—</td><td>rd = (rs1 &lt; imm) ? 1 : 0</td></tr>
-        <tr><td><code>ANDI rd, rs1, imm</code></td><td><span class="ftag i-tag">I</span></td><td>0010011</td><td>111</td><td>—</td><td>rd = rs1 &amp; imm</td></tr>
-        <tr><td><code>ORI  rd, rs1, imm</code></td><td><span class="ftag i-tag">I</span></td><td>0010011</td><td>110</td><td>—</td><td>rd = rs1 | imm</td></tr>
-        <tr><td><code>LW  rd, imm(rs1)</code></td><td><span class="ftag i-tag">I</span></td><td>0000011</td><td>010</td><td>—</td><td>rd = Mem[rs1 + imm][31:0]</td></tr>
-        <tr><td><code>LH  rd, imm(rs1)</code></td><td><span class="ftag i-tag">I</span></td><td>0000011</td><td>001</td><td>—</td><td>rd = SignExt(Mem[rs1+imm][15:0])</td></tr>
-        <tr><td><code>LB  rd, imm(rs1)</code></td><td><span class="ftag i-tag">I</span></td><td>0000011</td><td>000</td><td>—</td><td>rd = SignExt(Mem[rs1+imm][7:0])</td></tr>
-        <tr><td><code>JALR rd, rs1, imm</code></td><td><span class="ftag i-tag">I</span></td><td>1100111</td><td>000</td><td>—</td><td>rd = PC+4; PC = rs1+imm</td></tr>
-        <tr><td><code>SW rs2, imm(rs1)</code></td><td><span class="ftag s-tag">S</span></td><td>0100011</td><td>010</td><td>—</td><td>Mem[rs1+imm] = rs2[31:0]</td></tr>
-        <tr><td><code>SH rs2, imm(rs1)</code></td><td><span class="ftag s-tag">S</span></td><td>0100011</td><td>001</td><td>—</td><td>Mem[rs1+imm] = rs2[15:0]</td></tr>
-        <tr><td><code>SB rs2, imm(rs1)</code></td><td><span class="ftag s-tag">S</span></td><td>0100011</td><td>000</td><td>—</td><td>Mem[rs1+imm] = rs2[7:0]</td></tr>
-        <tr><td><code>BEQ rs1, rs2, off</code></td><td><span class="ftag b-tag">B</span></td><td>1100011</td><td>000</td><td>—</td><td>if rs1 == rs2: PC += offset</td></tr>
-        <tr><td><code>BNE rs1, rs2, off</code></td><td><span class="ftag b-tag">B</span></td><td>1100011</td><td>001</td><td>—</td><td>if rs1 ≠ rs2:  PC += offset</td></tr>
-        <tr><td><code>BLT rs1, rs2, off</code></td><td><span class="ftag b-tag">B</span></td><td>1100011</td><td>100</td><td>—</td><td>if rs1 &lt; rs2:  PC += offset</td></tr>
-        <tr><td><code>BGE rs1, rs2, off</code></td><td><span class="ftag b-tag">B</span></td><td>1100011</td><td>101</td><td>—</td><td>if rs1 ≥ rs2:  PC += offset</td></tr>
-        <tr><td><code>LUI  rd, imm</code></td><td><span class="ftag u-tag">U</span></td><td>0110111</td><td>—</td><td>—</td><td>rd = imm &lt;&lt; 12</td></tr>
-        <tr><td><code>AUIPC rd, imm</code></td><td><span class="ftag u-tag">U</span></td><td>0010111</td><td>—</td><td>—</td><td>rd = PC + (imm &lt;&lt; 12)</td></tr>
-        <tr><td><code>JAL rd, offset</code></td><td><span class="ftag j-tag">J</span></td><td>1101111</td><td>—</td><td>—</td><td>rd = PC+4; PC += offset</td></tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-</div>
-
-<!-- ═══════════ ABOUT ═══════════ -->
-
-<div class="section" id="sec-about">
-<div class="section-wrap">
-  <div class="section-head">
-    <h2>About This Project</h2>
-    <p>// B.Tech COA project — RISC-V Instruction Format Study & Execution Simulator</p>
-  </div>
-
-  <div class="about-grid">
-    <div>
-      <div class="card" style="margin-bottom:16px;">
-        <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:16px;">Project Overview</div>
-        <div class="timeline">
-          <div class="tl-item">
-            <div class="tl-title">What is RISC-V?</div>
-            <div class="tl-text">RISC-V (Risk Five) is an open-standard Instruction Set Architecture (ISA) based on Reduced Instruction Set Computing principles, developed at UC Berkeley. Released publicly in 2010, it has become the world's fastest-growing ISA — used in everything from embedded chips to datacenters.</div>
-          </div>
-          <div class="tl-item">
-            <div class="tl-title">Why Fixed 32-bit Instructions?</div>
-            <div class="tl-text">Fixed-width instructions simplify hardware decoding — the CPU always knows exactly where each field is. This enables faster pipelines, simpler control units, and cleaner VLSI design compared to variable-length ISAs like x86.</div>
-          </div>
-          <div class="tl-item">
-            <div class="tl-title">Why 6 Different Formats?</div>
-            <div class="tl-text">Different instructions need different information. R-type needs two register sources; Load needs a base register + offset; Branch needs two comparands + a jump target. Each format packs exactly what's needed into 32 bits, nothing wasted.</div>
-          </div>
-          <div class="tl-item">
-            <div class="tl-title">5-Stage Pipeline Design</div>
-            <div class="tl-text">The classic 5-stage pipeline (IF→ID→EX→MEM→WB) allows 5 instructions to overlap, giving near 1 Instruction Per Clock (IPC) throughput. Hazards (data, control, structural) require stalls or forwarding — studied in advanced COA courses.</div>
-          </div>
+    <div class="hero">
+        <div class="hero-chip">
+            <div class="dot"></div>LIVE PROJECT DEMO
         </div>
-      </div>
+        <h1>RISC-V <span>Instruction Formats</span><br>& Execution Engine</h1>
+        <p class="hero-sub">// A complete interactive COA project — encode any instruction, visualize bit fields,
+            simulate the 5-stage execution cycle, and trace register states.</p>
+        <div class="author-bar">
+            <div><span>Subject </span><strong>Computer Organization & Architecture</strong></div>
+            <div class="divider-dot">•</div>
+            <div><span>University </span><strong>APJ Abdul Kalam Technological University</strong></div>
+            <div class="divider-dot">•</div>
+            <div><span>Semester </span><strong>4th Sem B.Tech AI & DS</strong></div>
+        </div>
     </div>
 
-```
-<div>
-  <div class="card" style="margin-bottom:16px;">
-    <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:16px;">Project Contents</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <div class="info-box"><div class="ib-label">SECTION 1</div><div class="ib-val">📐 Instruction Format Architecture — All 6 RISC-V formats with interactive bit-field visualization</div></div>
-      <div class="info-box"><div class="ib-label">SECTION 2</div><div class="ib-val">⚡ Live Instruction Simulator — Real-time binary encoding + hex output + register state for 20+ instructions</div></div>
-      <div class="info-box"><div class="ib-label">SECTION 3</div><div class="ib-val">⚙️ Execution Cycle — 5-stage pipeline breakdown with hardware units, operations, and pipeline trace table</div></div>
-      <div class="info-box"><div class="ib-label">SECTION 4</div><div class="ib-val">📋 Reference Table — Complete RV32I ISA instruction reference with opcodes and funct fields</div></div>
+    <!-- NAV -->
+
+    <nav>
+        <div class="nav-inner">
+            <button class="nav-btn active" onclick="goTo('formats', this)">📐 Formats</button>
+            <button class="nav-btn" onclick="goTo('simulator', this)">⚡ Simulator</button>
+            <button class="nav-btn" onclick="goTo('cycle', this)">⚙️ Execution Cycle</button>
+            <button class="nav-btn" onclick="goTo('reference', this)">📋 Reference Table</button>
+            <button class="nav-btn" onclick="goTo('about', this)">📖 About</button>
+        </div>
+    </nav>
+
+    <!-- ═══════════ FORMATS ═══════════ -->
+
+    <div class="section active" id="sec-formats">
+        <div class="section-wrap">
+            <div class="section-head">
+                <h2>Instruction Format Architecture</h2>
+                <p>// All RISC-V base instructions are exactly 32 bits. The 6 formats define how those 32 bits are
+                    partitioned into fields. Hover over bit fields to inspect them.</p>
+            </div>
+
+            <div class="formats-grid">
+
+                <!-- R -->
+                <div class="fmt-card r" onclick="highlightFmt(this)">
+                    <div class="fmt-top">
+                        <div class="fmt-badge">R</div>
+                        <div>
+                            <div class="fmt-name">R-Type Format</div>
+                            <div class="fmt-sub">REGISTER — REGISTER OPERATIONS</div>
+                        </div>
+                    </div>
+                    <div class="bit-row">
+                        <div class="bit-field bf-f7" title="7 bits: differentiates operations">funct7<br>7b</div>
+                        <div class="bit-field bf-rs2" title="5 bits: source register 2">rs2<br>5b</div>
+                        <div class="bit-field bf-rs1" title="5 bits: source register 1">rs1<br>5b</div>
+                        <div class="bit-field bf-f3" title="3 bits: sub-operation">f3<br>3b</div>
+                        <div class="bit-field bf-rd" title="5 bits: destination register">rd<br>5b</div>
+                        <div class="bit-field bf-op" title="7 bits: major opcode">opcode<br>7b</div>
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#c084fc"></div>funct7: selects exact op
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#f87171"></div>rs2: second source reg
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#fb923c"></div>rs1: first source reg
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#4ade80"></div>rd: result destination
+                        </div>
+                    </div>
+                    <div class="fmt-example">ADD x1, x2, x3 → x1 = x2 + x3</div>
+                    <div class="fmt-example">SUB x4, x5, x6 → x4 = x5 − x6</div>
+                    <div class="fmt-desc">Used for ALU operations between two registers. No immediate value. funct7 +
+                        funct3 together distinguish ~30+ operations from the same opcode group.</div>
+                </div>
+
+                <!-- I -->
+                <div class="fmt-card i" onclick="highlightFmt(this)">
+                    <div class="fmt-top">
+                        <div class="fmt-badge">I</div>
+                        <div>
+                            <div class="fmt-name">I-Type Format</div>
+                            <div class="fmt-sub">IMMEDIATE / LOAD OPERATIONS</div>
+                        </div>
+                    </div>
+                    <div class="bit-row">
+                        <div class="bit-field bf-imm12" title="12 bits: signed immediate">imm[11:0] — 12 bits</div>
+                        <div class="bit-field bf-rs1" title="5 bits: base register">rs1<br>5b</div>
+                        <div class="bit-field bf-f3" title="3 bits: sub-operation">f3<br>3b</div>
+                        <div class="bit-field bf-rd" title="5 bits: destination">rd<br>5b</div>
+                        <div class="bit-field bf-op" title="7 bits: opcode">opcode<br>7b</div>
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#38bdf8"></div>imm: 12-bit signed constant (−2048
+                            to +2047)
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#fb923c"></div>rs1: source register
+                        </div>
+                    </div>
+                    <div class="fmt-example">ADDI x1, x2, 10 → x1 = x2 + 10</div>
+                    <div class="fmt-example">LW x1, 8(x2) → x1 = Mem[x2+8]</div>
+                    <div class="fmt-desc">One source register plus a 12-bit sign-extended immediate. Used for loads (LW,
+                        LH, LB), immediate arithmetic (ADDI, SLTI), logical immediates, and JALR.</div>
+                </div>
+
+                <!-- S -->
+                <div class="fmt-card s" onclick="highlightFmt(this)">
+                    <div class="fmt-top">
+                        <div class="fmt-badge">S</div>
+                        <div>
+                            <div class="fmt-name">S-Type Format</div>
+                            <div class="fmt-sub">STORE OPERATIONS</div>
+                        </div>
+                    </div>
+                    <div class="bit-row">
+                        <div class="bit-field bf-imm7" title="upper 7 bits of immediate">imm[11:5]<br>7b</div>
+                        <div class="bit-field bf-rs2" title="5 bits: data to store">rs2<br>5b</div>
+                        <div class="bit-field bf-rs1" title="5 bits: base address reg">rs1<br>5b</div>
+                        <div class="bit-field bf-f3" title="3 bits: width — byte/half/word">f3<br>3b</div>
+                        <div class="bit-field bf-imm5" title="lower 5 bits of immediate">imm[4:0]<br>5b</div>
+                        <div class="bit-field bf-op" title="7 bits: opcode">opcode<br>7b</div>
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#38bdf8"></div>imm: split across bits [31:25] and
+                            [11:7]
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#f87171"></div>rs2: data register (what to store)
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#fb923c"></div>rs1: base address register
+                        </div>
+                    </div>
+                    <div class="fmt-example">SW x2, 8(x1) → Mem[x1 + 8] = x2</div>
+                    <div class="fmt-example">SB x3, 0(x4) → Mem[x4] = x3[7:0]</div>
+                    <div class="fmt-desc">No rd field — stores do not write to registers. The immediate is deliberately
+                        split to keep rs1/rs2 at the same bit positions as other formats, simplifying hardware decode.
+                    </div>
+                </div>
+
+                <!-- B -->
+                <div class="fmt-card b" onclick="highlightFmt(this)">
+                    <div class="fmt-top">
+                        <div class="fmt-badge">B</div>
+                        <div>
+                            <div class="fmt-name">B-Type Format</div>
+                            <div class="fmt-sub">BRANCH / CONDITIONAL JUMP</div>
+                        </div>
+                    </div>
+                    <div class="bit-row">
+                        <div class="bit-field bf-imm7" title="bits 12 and 10:5 of offset">imm[12,10:5]<br>7b</div>
+                        <div class="bit-field bf-rs2" title="5 bits: second compare reg">rs2<br>5b</div>
+                        <div class="bit-field bf-rs1" title="5 bits: first compare reg">rs1<br>5b</div>
+                        <div class="bit-field bf-f3" title="3 bits: condition type">f3<br>3b</div>
+                        <div class="bit-field bf-imm5" title="bits 4:1 and 11 of offset">imm[4:1,11]<br>5b</div>
+                        <div class="bit-field bf-op" title="7 bits: opcode">opcode<br>7b</div>
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#38bdf8"></div>imm: PC-relative offset (multiples
+                            of 2)
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#fbbf24"></div>f3: selects condition
+                            (EQ/NE/LT/GE…)
+                        </div>
+                    </div>
+                    <div class="fmt-example">BEQ x1, x2, LOOP → if x1 == x2: PC += offset</div>
+                    <div class="fmt-example">BLT x3, x4, END → if x3 &lt; x4: PC += offset</div>
+                    <div class="fmt-desc">Variant of S-type. Immediate encodes a signed PC-relative byte offset. Bit 0
+                        of offset is always 0 (instructions are 4-byte aligned). Supports ±4KB branch range.</div>
+                </div>
+
+                <!-- U -->
+                <div class="fmt-card u" onclick="highlightFmt(this)">
+                    <div class="fmt-top">
+                        <div class="fmt-badge">U</div>
+                        <div>
+                            <div class="fmt-name">U-Type Format</div>
+                            <div class="fmt-sub">UPPER IMMEDIATE</div>
+                        </div>
+                    </div>
+                    <div class="bit-row">
+                        <div class="bit-field bf-imm20" title="20 bits: upper immediate">imm[31:12] — 20 bits</div>
+                        <div class="bit-field bf-rd" title="5 bits: destination register">rd<br>5b</div>
+                        <div class="bit-field bf-op" title="7 bits: opcode">opcode<br>7b</div>
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#38bdf8"></div>imm: loaded into bits [31:12] of rd
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#4ade80"></div>Lower 12 bits of rd are set to 0
+                        </div>
+                    </div>
+                    <div class="fmt-example">LUI x1, 0x12345 → x1 = 0x12345000</div>
+                    <div class="fmt-example">AUIPC x1, 0x10 → x1 = PC + 0x10000</div>
+                    <div class="fmt-desc">Simplest format. Used to build 32-bit constants: LUI sets upper 20 bits, then
+                        ADDI sets lower 12. AUIPC adds the upper immediate to the current PC for position-independent
+                        code.</div>
+                </div>
+
+                <!-- J -->
+                <div class="fmt-card j" onclick="highlightFmt(this)">
+                    <div class="fmt-top">
+                        <div class="fmt-badge">J</div>
+                        <div>
+                            <div class="fmt-name">J-Type Format</div>
+                            <div class="fmt-sub">UNCONDITIONAL JUMP</div>
+                        </div>
+                    </div>
+                    <div class="bit-row">
+                        <div class="bit-field bf-immj" title="20-bit scrambled immediate for jump offset">
+                            imm[20,10:1,11,19:12] — 20 bits</div>
+                        <div class="bit-field bf-rd" title="5 bits: return address destination">rd<br>5b</div>
+                        <div class="bit-field bf-op" title="7 bits: opcode">opcode<br>7b</div>
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#38bdf8"></div>imm: 21-bit PC-relative offset (bit
+                            0 = 0)
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#4ade80"></div>rd: stores return address (PC + 4)
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#c084fc"></div>Bits are scrambled to share layout
+                            with B-type
+                        </div>
+                    </div>
+                    <div class="fmt-example">JAL x1, FUNC → x1 = PC+4 ; PC = PC + offset</div>
+                    <div class="fmt-desc">Only JAL uses J-type. The 20-bit immediate (21-bit offset with implicit 0 LSB)
+                        allows ±1MB jump range. rd=x0 for a plain jump (no return address needed).</div>
+                </div>
+
+
+            </div>
+        </div>
     </div>
-  </div>
-  <div class="card">
-    <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:14px;">Key Design Principles of RISC-V</div>
-    <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text);line-height:1.7;">
-      <div>✅ <strong style="color:var(--white)">Simplicity</strong> — Fixed-width 32-bit instructions</div>
-      <div>✅ <strong style="color:var(--white)">Regularity</strong> — rs1, rs2 always at same bit positions</div>
-      <div>✅ <strong style="color:var(--white)">Openness</strong> — Free, royalty-free, no licensing fees</div>
-      <div>✅ <strong style="color:var(--white)">Scalability</strong> — RV32I → RV64I → RV128I extensions</div>
-      <div>✅ <strong style="color:var(--white)">Modularity</strong> — M (multiply), F (float), A (atomic) extensions</div>
-      <div>✅ <strong style="color:var(--white)">Clean Slate</strong> — No legacy baggage like x86 or ARM</div>
+
+    <!-- ═══════════ SIMULATOR ═══════════ -->
+
+    <div class="section" id="sec-simulator">
+        <div class="section-wrap">
+            <div class="section-head">
+                <h2>Live Instruction Simulator</h2>
+                <p>// Select an instruction, fill in operands, and RUN — get the 32-bit binary encoding, hex
+                    representation, field breakdown, and register state output instantly.</p>
+            </div>
+
+            <div class="sim-layout">
+                <!-- INPUT -->
+                <div class="sim-panel">
+                    <div class="sim-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+                            <polyline points="16 18 22 12 16 6" />
+                            <polyline points="8 6 2 12 8 18" />
+                        </svg>
+                        <div class="sim-title">INSTRUCTION INPUT</div>
+                    </div>
+                    <div class="sim-body">
+                        <label>INSTRUCTION TYPE</label>
+                        <select id="instr-sel" onchange="updateInputs()">
+                            <optgroup label="R-Type (Register–Register)">
+                                <option value="ADD">ADD rd, rs1, rs2</option>
+                                <option value="SUB">SUB rd, rs1, rs2</option>
+                                <option value="AND">AND rd, rs1, rs2</option>
+                                <option value="OR">OR rd, rs1, rs2</option>
+                                <option value="XOR">XOR rd, rs1, rs2</option>
+                                <option value="SLL">SLL rd, rs1, rs2</option>
+                                <option value="SRL">SRL rd, rs1, rs2</option>
+                            </optgroup>
+                            <optgroup label="I-Type (Immediate)">
+                                <option value="ADDI">ADDI rd, rs1, imm</option>
+                                <option value="LW">LW rd, imm(rs1)</option>
+                                <option value="SLTI">SLTI rd, rs1, imm</option>
+                                <option value="ANDI">ANDI rd, rs1, imm</option>
+                            </optgroup>
+                            <optgroup label="S-Type (Store)">
+                                <option value="SW">SW rs2, imm(rs1)</option>
+                                <option value="SH">SH rs2, imm(rs1)</option>
+                                <option value="SB">SB rs2, imm(rs1)</option>
+                            </optgroup>
+                            <optgroup label="B-Type (Branch)">
+                                <option value="BEQ">BEQ rs1, rs2, offset</option>
+                                <option value="BNE">BNE rs1, rs2, offset</option>
+                                <option value="BLT">BLT rs1, rs2, offset</option>
+                                <option value="BGE">BGE rs1, rs2, offset</option>
+                            </optgroup>
+                            <optgroup label="U-Type (Upper Immediate)">
+                                <option value="LUI">LUI rd, imm</option>
+                                <option value="AUIPC">AUIPC rd, imm</option>
+                            </optgroup>
+                            <optgroup label="J-Type (Jump)">
+                                <option value="JAL">JAL rd, offset</option>
+                            </optgroup>
+                        </select>
+
+
+                        <div id="input-fields"></div>
+
+                        <button class="run-btn" onclick="runSim()">▶ RUN INSTRUCTION</button>
+                    </div>
+                </div>
+
+                <!-- OUTPUT -->
+                <div class="sim-panel">
+                    <div class="sim-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" />
+                            <line x1="8" y1="21" x2="16" y2="21" />
+                            <line x1="12" y1="17" x2="12" y2="21" />
+                        </svg>
+                        <div class="sim-title">OUTPUT &amp; ENCODING</div>
+                    </div>
+                    <div class="sim-body" id="sim-output">
+                        <div
+                            style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center;padding:40px 0;">
+                            ← Select an instruction and click RUN
+                        </div>
+                    </div>
+                </div>
+                ```
+
+            </div>
+
+            <!-- Register State -->
+
+            <div class="card" style="margin-top:20px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <div>
+                        <div style="font-size:15px;font-weight:700;color:var(--white);">Register File State (x0–x15)
+                        </div>
+                        <div
+                            style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:3px;">
+                            // Updated after each RUN. x0 is always 0.</div>
+                    </div>
+                    <button class="run-btn" style="width:auto;padding:8px 16px;font-size:12px;" onclick="resetRegs()">↺
+                        Reset Registers</button>
+                </div>
+                <div class="reg-grid" id="reg-display"></div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
-```
 
-  </div>
-</div>
-</div>
+    <!-- ═══════════ EXECUTION CYCLE ═══════════ -->
 
-<footer>
-  RISC-V Instruction Formats & Execution Cycle — COA Project &nbsp;•&nbsp; B.Tech CSE Semester 4 &nbsp;•&nbsp; APJ Abdul Kalam Technological University &nbsp;•&nbsp; Built with ❤️
-</footer>
+    <div class="section" id="sec-cycle">
+        <div class="section-wrap">
+            <div class="section-head">
+                <h2>5-Stage Execution Cycle</h2>
+                <p>// Every RISC-V instruction flows through 5 pipeline stages. Click a stage tab below to see exactly
+                    what hardware is active and what operations occur.</p>
+            </div>
 
-<script>
-// ── NAVIGATION ──
-function goTo(id, btn) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('sec-' + id).classList.add('active');
-  btn.classList.add('active');
-}
+            <!-- Pipeline diagram -->
 
-// ── FORMAT HIGHLIGHT ──
-function highlightFmt(el) {
-  document.querySelectorAll('.fmt-card').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-}
+            <div class="pipeline-vis">
+                <div class="pipe-stage lit" onclick="showStep(0)">
+                    <div class="ps-num">STAGE 01</div>
+                    <div class="ps-abbr">IF</div>
+                    <div class="ps-name">Instruction<br>Fetch</div>
+                </div>
+                <div class="pipe-stage" onclick="showStep(1)">
+                    <div class="ps-num">STAGE 02</div>
+                    <div class="ps-abbr">ID</div>
+                    <div class="ps-name">Instruction<br>Decode</div>
+                </div>
+                <div class="pipe-stage" onclick="showStep(2)">
+                    <div class="ps-num">STAGE 03</div>
+                    <div class="ps-abbr">EX</div>
+                    <div class="ps-name">Execute<br>(ALU)</div>
+                </div>
+                <div class="pipe-stage" onclick="showStep(3)">
+                    <div class="ps-num">STAGE 04</div>
+                    <div class="ps-abbr">MEM</div>
+                    <div class="ps-name">Memory<br>Access</div>
+                </div>
+                <div class="pipe-stage" onclick="showStep(4)">
+                    <div class="ps-num">STAGE 05</div>
+                    <div class="ps-abbr">WB</div>
+                    <div class="ps-name">Write<br>Back</div>
+                </div>
+            </div>
 
-// ── STEP TABS ──
-function showStep(idx) {
-  document.querySelectorAll('.step-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
-  document.querySelectorAll('.step-content').forEach((c,i) => c.classList.toggle('active', i===idx));
-  document.querySelectorAll('.pipe-stage').forEach((s,i) => s.classList.toggle('lit', i===idx));
-}
+            <!-- Step detail tabs -->
 
-// ── REGISTERS ──
-let regs = new Array(32).fill(0);
-regs[2] = 10; regs[3] = 25; regs[4] = 7; regs[5] = 100;
+            <div class="step-runner">
+                <div class="step-tabs">
+                    <button class="step-tab active" onclick="showStep(0)">① Fetch (IF)</button>
+                    <button class="step-tab" onclick="showStep(1)">② Decode (ID)</button>
+                    <button class="step-tab" onclick="showStep(2)">③ Execute (EX)</button>
+                    <button class="step-tab" onclick="showStep(3)">④ Memory (MEM)</button>
+                    <button class="step-tab" onclick="showStep(4)">⑤ Write Back (WB)</button>
+                </div>
 
-function renderRegs() {
-  const g = document.getElementById('reg-display');
-  if (!g) return;
-  g.innerHTML = '';
-  for (let i = 0; i < 16; i++) {
-    const c = document.createElement('div');
-    c.className = 'reg-cell';
-    c.id = 'reg-' + i;
-    c.innerHTML = `<span class="reg-name">x${i}</span><span class="reg-val">${regs[i]}</span>`;
-    g.appendChild(c);
-  }
-}
 
-function flashReg(rd) {
-  const el = document.getElementById('reg-' + rd);
-  if (!el) return;
-  el.classList.add('changed');
-  setTimeout(() => el.classList.remove('changed'), 1800);
-}
+                <!-- IF -->
+                <div class="step-content active" id="step-0">
+                    <h3>📡 Instruction Fetch (IF)</h3>
+                    <p style="font-size:13px;color:var(--text);line-height:1.7;">The CPU's Program Counter (PC) holds
+                        the address of the next instruction. The instruction is read from Instruction Memory at that
+                        address. After the fetch, PC is automatically incremented by 4.</p>
+                    <div class="info-grid">
+                        <div class="info-box">
+                            <div class="ib-label">HARDWARE ACTIVE</div>
+                            <div class="ib-val">Program Counter (PC) • Instruction Memory • PC Adder (+4)</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">OPERATION</div>
+                            <div class="ib-code" id="cycle-if-op">IR ← Mem[PC]<br>PC ← PC + 4</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">LIVE FETCH DATA</div>
+                            <div class="ib-val" id="cycle-if-data">PC = 0x1000 → fetch instruction → PC = 0x1004</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">STATUS</div>
+                            <div class="ib-val" style="color:var(--green)">✓ Completed</div>
+                        </div>
+                    </div>
+                </div>
 
-function resetRegs() {
-  regs = new Array(32).fill(0);
-  regs[2]=10; regs[3]=25; regs[4]=7; regs[5]=100;
-  renderRegs();
-}
+                <!-- ID -->
+                <div class="step-content" id="step-1">
+                    <h3>🔍 Instruction Decode (ID)</h3>
+                    <p style="font-size:13px;color:var(--text);line-height:1.7;">The fetched instruction is split into
+                        fields. The opcode is sent to the Control Unit. Source registers rs1 and rs2 are read from the
+                        Register File.</p>
+                    <div class="info-grid">
+                        <div class="info-box">
+                            <div class="ib-label">HARDWARE ACTIVE</div>
+                            <div class="ib-val">Control Unit • Register File • Sign-Extend Unit</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">OPERANDS READ</div>
+                            <div class="ib-code" id="cycle-id-ops">A ← Reg[rs1]<br>B ← Reg[rs2]</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">DECODED FIELDS</div>
+                            <div class="ib-val" id="cycle-id-fields">rs1=x0, rs2=x0, rd=x0, imm=0</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">CONTROL SIGNALS</div>
+                            <div class="ib-val" id="cycle-id-ctrl">RegWrite: Yes, ALUSrc: Reg</div>
+                        </div>
+                    </div>
+                </div>
 
-renderRegs();
+                <!-- EX -->
+                <div class="step-content" id="step-2">
+                    <h3>⚡ Execute (EX)</h3>
+                    <p style="font-size:13px;color:var(--text);line-height:1.7;">The ALU performs the core computation.
+                        A MUX selects the second ALU input: Register B or Sign-Extended Immediate.</p>
+                    <div class="info-grid">
+                        <div class="info-box">
+                            <div class="ib-label">HARDWARE ACTIVE</div>
+                            <div class="ib-val">ALU • ALU Control • MUX (ALUSrc)</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">ALU COMPUTATION</div>
+                            <div class="ib-code" id="cycle-ex-math">Result = A op B</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">INPUT MONITOR</div>
+                            <div class="ib-val" id="cycle-ex-vals">A=0, B=0</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">ALU ACTION</div>
+                            <div class="ib-val" id="cycle-ex-op">Operation: ADD</div>
+                        </div>
+                    </div>
+                </div>
 
-// ── SIMULATOR INPUTS ──
-const instrDefs = {
-  // R-type
-  ADD:  { fmt:'R', fields:['rd','rs1','rs2'] },
-  SUB:  { fmt:'R', fields:['rd','rs1','rs2'] },
-  AND:  { fmt:'R', fields:['rd','rs1','rs2'] },
-  OR:   { fmt:'R', fields:['rd','rs1','rs2'] },
-  XOR:  { fmt:'R', fields:['rd','rs1','rs2'] },
-  SLL:  { fmt:'R', fields:['rd','rs1','rs2'] },
-  SRL:  { fmt:'R', fields:['rd','rs1','rs2'] },
-  // I-type
-  ADDI: { fmt:'I', fields:['rd','rs1','imm'] },
-  LW:   { fmt:'I', fields:['rd','imm','rs1'], loadStore:true },
-  SLTI: { fmt:'I', fields:['rd','rs1','imm'] },
-  ANDI: { fmt:'I', fields:['rd','rs1','imm'] },
-  // S-type
-  SW:   { fmt:'S', fields:['rs2','imm','rs1'], loadStore:true },
-  SH:   { fmt:'S', fields:['rs2','imm','rs1'], loadStore:true },
-  SB:   { fmt:'S', fields:['rs2','imm','rs1'], loadStore:true },
-  // B-type
-  BEQ:  { fmt:'B', fields:['rs1','rs2','offset'] },
-  BNE:  { fmt:'B', fields:['rs1','rs2','offset'] },
-  BLT:  { fmt:'B', fields:['rs1','rs2','offset'] },
-  BGE:  { fmt:'B', fields:['rs1','rs2','offset'] },
-  // U-type
-  LUI:   { fmt:'U', fields:['rd','imm'] },
-  AUIPC: { fmt:'U', fields:['rd','imm'] },
-  // J-type
-  JAL:  { fmt:'J', fields:['rd','offset'] },
-};
+                <!-- MEM -->
+                <div class="step-content" id="step-3">
+                    <h3>💾 Memory Access (MEM)</h3>
+                    <p style="font-size:13px;color:var(--text);line-height:1.7;">Only Load and Store instructions
+                        actively use this stage. All other instructions pass through.</p>
+                    <div class="info-grid">
+                        <div class="info-box">
+                            <div class="ib-label">HARDWARE ACTIVE</div>
+                            <div class="ib-val">Data Memory • MemRead/Write</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">MEMORY OP</div>
+                            <div class="ib-code" id="cycle-mem-op">None (Pass-through)</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">DATA ACCESS</div>
+                            <div class="ib-val" id="cycle-mem-data">No memory address accessed</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">FORWARDING</div>
+                            <div class="ib-val">ALU Result forwarded to WB stage</div>
+                        </div>
+                    </div>
+                </div>
 
-const fmtColors = { R:'#f87171', I:'#fb923c', S:'#fbbf24', B:'#4ade80', U:'#38bdf8', J:'#c084fc' };
+                <!-- WB -->
+                <div class="step-content" id="step-4">
+                    <h3>✍️ Write Back (WB)</h3>
+                    <p style="font-size:13px;color:var(--text);line-height:1.7;">The final result is written to the
+                        destination register in the Register File.</p>
+                    <div class="info-grid">
+                        <div class="info-box">
+                            <div class="ib-label">HARDWARE ACTIVE</div>
+                            <div class="ib-val">Register File (Write Port) • MUX (MemToReg)</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">WRITE ACTION</div>
+                            <div class="ib-code" id="cycle-wb-action">Reg[rd] ← ALU_result</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">REGISTER UPDATE info</div>
+                            <div class="ib-val" id="cycle-wb-data">x1 = 35</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="ib-label">STATUS</div>
+                            <div class="ib-val" style="color:var(--accent)">Instruction Retired</div>
+                        </div>
+                    </div>
+                </div>
 
-function updateInputs() {
-  const sel = document.getElementById('instr-sel').value;
-  const def = instrDefs[sel];
-  const container = document.getElementById('input-fields');
-  let html = '';
 
-  const fieldLabels = { rd:'DESTINATION REG (rd)', rs1:'SOURCE REG 1 (rs1)', rs2:'SOURCE REG 2 (rs2)', imm:'IMMEDIATE VALUE', offset:'BRANCH/JUMP OFFSET' };
-  const fieldMax = { rd:31, rs1:31, rs2:31, imm:2047, offset:4094 };
-  const fieldMin = { rd:0, rs1:0, rs2:0, imm:-2048, offset:-4096 };
+            </div>
 
-  const fields = def.fields;
-  // Group pairs
-  for (let i = 0; i < fields.length; i += 2) {
-    if (i + 1 < fields.length) {
-      html += `<div class="row-2">`;
-    }
-    const f = fields[i];
-    html += `<div>
+            <!-- Pipeline trace -->
+
+            <div class="card">
+                <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:6px;">Pipeline Execution
+                    Trace</div>
+                <div
+                    style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:16px;">
+                    // Shows how 5 instructions overlap in a pipelined processor (1 instruction per clock cycle
+                    throughput)</div>
+                <div style="overflow-x:auto;">
+                    <table class="trace-table">
+                        <thead>
+                            <tr>
+                                <th>INSTRUCTION</th>
+                                <th>CYCLE 1</th>
+                                <th>CYCLE 2</th>
+                                <th>CYCLE 3</th>
+                                <th>CYCLE 4</th>
+                                <th>CYCLE 5</th>
+                                <th>CYCLE 6</th>
+                                <th>CYCLE 7</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="color:var(--white);font-weight:700;">ADD x1,x2,x3</td>
+                                <td class="trace-highlight">IF</td>
+                                <td class="trace-highlight">ID</td>
+                                <td class="trace-highlight">EX</td>
+                                <td class="trace-highlight">MEM</td>
+                                <td class="trace-highlight">WB</td>
+                                <td>—</td>
+                                <td>—</td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--white);font-weight:700;">ADDI x4,x1,5</td>
+                                <td>—</td>
+                                <td class="trace-highlight">IF</td>
+                                <td class="trace-highlight">ID</td>
+                                <td class="trace-highlight">EX</td>
+                                <td class="trace-highlight">MEM</td>
+                                <td class="trace-highlight">WB</td>
+                                <td>—</td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--white);font-weight:700;">LW x5,0(x1)</td>
+                                <td>—</td>
+                                <td>—</td>
+                                <td class="trace-highlight">IF</td>
+                                <td class="trace-highlight">ID</td>
+                                <td class="trace-highlight">EX</td>
+                                <td class="trace-highlight">MEM</td>
+                                <td class="trace-highlight">WB</td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--white);font-weight:700;">SW x5,4(x1)</td>
+                                <td>—</td>
+                                <td>—</td>
+                                <td>—</td>
+                                <td class="trace-highlight">IF</td>
+                                <td class="trace-highlight">ID</td>
+                                <td class="trace-highlight">EX</td>
+                                <td class="trace-highlight">MEM</td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--white);font-weight:700;">BEQ x1,x2,L</td>
+                                <td>—</td>
+                                <td>—</td>
+                                <td>—</td>
+                                <td>—</td>
+                                <td class="trace-highlight">IF</td>
+                                <td class="trace-highlight">ID</td>
+                                <td class="trace-highlight">EX</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ REFERENCE TABLE ═══════════ -->
+
+    <div class="section" id="sec-reference">
+        <div class="section-wrap">
+            <div class="section-head">
+                <h2>Complete Reference Table</h2>
+                <p>// All RISC-V RV32I base instructions with format, opcode, funct fields, and operation description.
+                </p>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table class="ref-table">
+                    <thead>
+                        <tr>
+                            <th>INSTRUCTION</th>
+                            <th>FORMAT</th>
+                            <th>OPCODE</th>
+                            <th>FUNCT3</th>
+                            <th>FUNCT7</th>
+                            <th>OPERATION</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>ADD rd, rs1, rs2</code></td>
+                            <td><span class="ftag r-tag">R</span></td>
+                            <td>0110011</td>
+                            <td>000</td>
+                            <td>0000000</td>
+                            <td>rd = rs1 + rs2</td>
+                        </tr>
+                        <tr>
+                            <td><code>SUB rd, rs1, rs2</code></td>
+                            <td><span class="ftag r-tag">R</span></td>
+                            <td>0110011</td>
+                            <td>000</td>
+                            <td>0100000</td>
+                            <td>rd = rs1 − rs2</td>
+                        </tr>
+                        <tr>
+                            <td><code>AND rd, rs1, rs2</code></td>
+                            <td><span class="ftag r-tag">R</span></td>
+                            <td>0110011</td>
+                            <td>111</td>
+                            <td>0000000</td>
+                            <td>rd = rs1 &amp; rs2</td>
+                        </tr>
+                        <tr>
+                            <td><code>OR  rd, rs1, rs2</code></td>
+                            <td><span class="ftag r-tag">R</span></td>
+                            <td>0110011</td>
+                            <td>110</td>
+                            <td>0000000</td>
+                            <td>rd = rs1 | rs2</td>
+                        </tr>
+                        <tr>
+                            <td><code>XOR rd, rs1, rs2</code></td>
+                            <td><span class="ftag r-tag">R</span></td>
+                            <td>0110011</td>
+                            <td>100</td>
+                            <td>0000000</td>
+                            <td>rd = rs1 ^ rs2</td>
+                        </tr>
+                        <tr>
+                            <td><code>SLL rd, rs1, rs2</code></td>
+                            <td><span class="ftag r-tag">R</span></td>
+                            <td>0110011</td>
+                            <td>001</td>
+                            <td>0000000</td>
+                            <td>rd = rs1 &lt;&lt; rs2[4:0]</td>
+                        </tr>
+                        <tr>
+                            <td><code>SRL rd, rs1, rs2</code></td>
+                            <td><span class="ftag r-tag">R</span></td>
+                            <td>0110011</td>
+                            <td>101</td>
+                            <td>0000000</td>
+                            <td>rd = rs1 &gt;&gt; rs2 (logical)</td>
+                        </tr>
+                        <tr>
+                            <td><code>SRA rd, rs1, rs2</code></td>
+                            <td><span class="ftag r-tag">R</span></td>
+                            <td>0110011</td>
+                            <td>101</td>
+                            <td>0100000</td>
+                            <td>rd = rs1 &gt;&gt; rs2 (arithmetic)</td>
+                        </tr>
+                        <tr>
+                            <td><code>SLT rd, rs1, rs2</code></td>
+                            <td><span class="ftag r-tag">R</span></td>
+                            <td>0110011</td>
+                            <td>010</td>
+                            <td>0000000</td>
+                            <td>rd = (rs1 &lt; rs2) ? 1 : 0</td>
+                        </tr>
+                        <tr>
+                            <td><code>ADDI rd, rs1, imm</code></td>
+                            <td><span class="ftag i-tag">I</span></td>
+                            <td>0010011</td>
+                            <td>000</td>
+                            <td>—</td>
+                            <td>rd = rs1 + imm</td>
+                        </tr>
+                        <tr>
+                            <td><code>SLTI rd, rs1, imm</code></td>
+                            <td><span class="ftag i-tag">I</span></td>
+                            <td>0010011</td>
+                            <td>010</td>
+                            <td>—</td>
+                            <td>rd = (rs1 &lt; imm) ? 1 : 0</td>
+                        </tr>
+                        <tr>
+                            <td><code>ANDI rd, rs1, imm</code></td>
+                            <td><span class="ftag i-tag">I</span></td>
+                            <td>0010011</td>
+                            <td>111</td>
+                            <td>—</td>
+                            <td>rd = rs1 &amp; imm</td>
+                        </tr>
+                        <tr>
+                            <td><code>ORI  rd, rs1, imm</code></td>
+                            <td><span class="ftag i-tag">I</span></td>
+                            <td>0010011</td>
+                            <td>110</td>
+                            <td>—</td>
+                            <td>rd = rs1 | imm</td>
+                        </tr>
+                        <tr>
+                            <td><code>LW  rd, imm(rs1)</code></td>
+                            <td><span class="ftag i-tag">I</span></td>
+                            <td>0000011</td>
+                            <td>010</td>
+                            <td>—</td>
+                            <td>rd = Mem[rs1 + imm][31:0]</td>
+                        </tr>
+                        <tr>
+                            <td><code>LH  rd, imm(rs1)</code></td>
+                            <td><span class="ftag i-tag">I</span></td>
+                            <td>0000011</td>
+                            <td>001</td>
+                            <td>—</td>
+                            <td>rd = SignExt(Mem[rs1+imm][15:0])</td>
+                        </tr>
+                        <tr>
+                            <td><code>LB  rd, imm(rs1)</code></td>
+                            <td><span class="ftag i-tag">I</span></td>
+                            <td>0000011</td>
+                            <td>000</td>
+                            <td>—</td>
+                            <td>rd = SignExt(Mem[rs1+imm][7:0])</td>
+                        </tr>
+                        <tr>
+                            <td><code>JALR rd, rs1, imm</code></td>
+                            <td><span class="ftag i-tag">I</span></td>
+                            <td>1100111</td>
+                            <td>000</td>
+                            <td>—</td>
+                            <td>rd = PC+4; PC = rs1+imm</td>
+                        </tr>
+                        <tr>
+                            <td><code>SW rs2, imm(rs1)</code></td>
+                            <td><span class="ftag s-tag">S</span></td>
+                            <td>0100011</td>
+                            <td>010</td>
+                            <td>—</td>
+                            <td>Mem[rs1+imm] = rs2[31:0]</td>
+                        </tr>
+                        <tr>
+                            <td><code>SH rs2, imm(rs1)</code></td>
+                            <td><span class="ftag s-tag">S</span></td>
+                            <td>0100011</td>
+                            <td>001</td>
+                            <td>—</td>
+                            <td>Mem[rs1+imm] = rs2[15:0]</td>
+                        </tr>
+                        <tr>
+                            <td><code>SB rs2, imm(rs1)</code></td>
+                            <td><span class="ftag s-tag">S</span></td>
+                            <td>0100011</td>
+                            <td>000</td>
+                            <td>—</td>
+                            <td>Mem[rs1+imm] = rs2[7:0]</td>
+                        </tr>
+                        <tr>
+                            <td><code>BEQ rs1, rs2, off</code></td>
+                            <td><span class="ftag b-tag">B</span></td>
+                            <td>1100011</td>
+                            <td>000</td>
+                            <td>—</td>
+                            <td>if rs1 == rs2: PC += offset</td>
+                        </tr>
+                        <tr>
+                            <td><code>BNE rs1, rs2, off</code></td>
+                            <td><span class="ftag b-tag">B</span></td>
+                            <td>1100011</td>
+                            <td>001</td>
+                            <td>—</td>
+                            <td>if rs1 ≠ rs2: PC += offset</td>
+                        </tr>
+                        <tr>
+                            <td><code>BLT rs1, rs2, off</code></td>
+                            <td><span class="ftag b-tag">B</span></td>
+                            <td>1100011</td>
+                            <td>100</td>
+                            <td>—</td>
+                            <td>if rs1 &lt; rs2: PC += offset</td>
+                        </tr>
+                        <tr>
+                            <td><code>BGE rs1, rs2, off</code></td>
+                            <td><span class="ftag b-tag">B</span></td>
+                            <td>1100011</td>
+                            <td>101</td>
+                            <td>—</td>
+                            <td>if rs1 ≥ rs2: PC += offset</td>
+                        </tr>
+                        <tr>
+                            <td><code>LUI  rd, imm</code></td>
+                            <td><span class="ftag u-tag">U</span></td>
+                            <td>0110111</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>rd = imm &lt;&lt; 12</td>
+                        </tr>
+                        <tr>
+                            <td><code>AUIPC rd, imm</code></td>
+                            <td><span class="ftag u-tag">U</span></td>
+                            <td>0010111</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>rd = PC + (imm &lt;&lt; 12)</td>
+                        </tr>
+                        <tr>
+                            <td><code>JAL rd, offset</code></td>
+                            <td><span class="ftag j-tag">J</span></td>
+                            <td>1101111</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>rd = PC+4; PC += offset</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ ABOUT ═══════════ -->
+
+    <div class="section" id="sec-about">
+        <div class="section-wrap">
+            <div class="section-head">
+                <h2>About This Project</h2>
+                <p>// B.Tech COA project — RISC-V Instruction Format Study & Execution Simulator</p>
+            </div>
+
+            <div class="about-grid">
+                <div>
+                    <div class="card" style="margin-bottom:16px;">
+                        <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:16px;">Project
+                            Overview</div>
+                        <div class="timeline">
+                            <div class="tl-item">
+                                <div class="tl-title">What is RISC-V?</div>
+                                <div class="tl-text">RISC-V (Risk Five) is an open-standard Instruction Set Architecture
+                                    (ISA) based on Reduced Instruction Set Computing principles, developed at UC
+                                    Berkeley. Released publicly in 2010, it has become the world's fastest-growing ISA —
+                                    used in everything from embedded chips to datacenters.</div>
+                            </div>
+                            <div class="tl-item">
+                                <div class="tl-title">Why Fixed 32-bit Instructions?</div>
+                                <div class="tl-text">Fixed-width instructions simplify hardware decoding — the CPU
+                                    always knows exactly where each field is. This enables faster pipelines, simpler
+                                    control units, and cleaner VLSI design compared to variable-length ISAs like x86.
+                                </div>
+                            </div>
+                            <div class="tl-item">
+                                <div class="tl-title">Why 6 Different Formats?</div>
+                                <div class="tl-text">Different instructions need different information. R-type needs two
+                                    register sources; Load needs a base register + offset; Branch needs two comparands +
+                                    a jump target. Each format packs exactly what's needed into 32 bits, nothing wasted.
+                                </div>
+                            </div>
+                            <div class="tl-item">
+                                <div class="tl-title">5-Stage Pipeline Design</div>
+                                <div class="tl-text">The classic 5-stage pipeline (IF→ID→EX→MEM→WB) allows 5
+                                    instructions to overlap, giving near 1 Instruction Per Clock (IPC) throughput.
+                                    Hazards (data, control, structural) require stalls or forwarding — studied in
+                                    advanced COA courses.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div>
+                    <div class="card" style="margin-bottom:16px;">
+                        <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:16px;">Project
+                            Contents</div>
+                        <div style="display:flex;flex-direction:column;gap:10px;">
+                            <div class="info-box">
+                                <div class="ib-label">SECTION 1</div>
+                                <div class="ib-val">📐 Instruction Format Architecture — All 6 RISC-V formats with
+                                    interactive bit-field visualization</div>
+                            </div>
+                            <div class="info-box">
+                                <div class="ib-label">SECTION 2</div>
+                                <div class="ib-val">⚡ Live Instruction Simulator — Real-time binary encoding + hex
+                                    output + register state for 20+ instructions</div>
+                            </div>
+                            <div class="info-box">
+                                <div class="ib-label">SECTION 3</div>
+                                <div class="ib-val">⚙️ Execution Cycle — 5-stage pipeline breakdown with hardware units,
+                                    operations, and pipeline trace table</div>
+                            </div>
+                            <div class="info-box">
+                                <div class="ib-label">SECTION 4</div>
+                                <div class="ib-val">📋 Reference Table — Complete RV32I ISA instruction reference with
+                                    opcodes and funct fields</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:14px;">Key Design
+                            Principles of RISC-V</div>
+                        <div
+                            style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text);line-height:1.7;">
+                            <div>✅ <strong style="color:var(--white)">Simplicity</strong> — Fixed-width 32-bit
+                                instructions</div>
+                            <div>✅ <strong style="color:var(--white)">Regularity</strong> — rs1, rs2 always at same bit
+                                positions</div>
+                            <div>✅ <strong style="color:var(--white)">Openness</strong> — Free, royalty-free, no
+                                licensing fees</div>
+                            <div>✅ <strong style="color:var(--white)">Scalability</strong> — RV32I → RV64I → RV128I
+                                extensions</div>
+                            <div>✅ <strong style="color:var(--white)">Modularity</strong> — M (multiply), F (float), A
+                                (atomic) extensions</div>
+                            <div>✅ <strong style="color:var(--white)">Clean Slate</strong> — No legacy baggage like x86
+                                or ARM</div>
+                        </div>
+                    </div>
+                </div>
+                ```
+
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        RISC-V Instruction Formats & Execution Cycle — COA Project &nbsp;•&nbsp; B.Tech CSE Semester 4 &nbsp;•&nbsp; APJ
+        Abdul Kalam Technological University &nbsp;•&nbsp; Built with ❤️
+    </footer>
+
+    <script>
+        // ── NAVIGATION ──
+        function goTo(id, btn) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('sec-' + id).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        // ── FORMAT HIGHLIGHT ──
+        function highlightFmt(el) {
+            document.querySelectorAll('.fmt-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        // ── STEP TABS ──
+        function showStep(idx) {
+            document.querySelectorAll('.step-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+            document.querySelectorAll('.step-content').forEach((c, i) => c.classList.toggle('active', i === idx));
+            document.querySelectorAll('.pipe-stage').forEach((s, i) => s.classList.toggle('lit', i === idx));
+        }
+
+        // ── REGISTERS ──
+        let regs = new Array(32).fill(0);
+        regs[2] = 10; regs[3] = 25; regs[4] = 7; regs[5] = 100;
+
+        function renderRegs() {
+            const g = document.getElementById('reg-display');
+            if (!g) return;
+            g.innerHTML = '';
+            for (let i = 0; i < 16; i++) {
+                const c = document.createElement('div');
+                c.className = 'reg-cell';
+                c.id = 'reg-' + i;
+                c.innerHTML = `<span class="reg-name">x${i}</span><span class="reg-val">${regs[i]}</span>`;
+                g.appendChild(c);
+            }
+        }
+
+        function flashReg(rd) {
+            const el = document.getElementById('reg-' + rd);
+            if (!el) return;
+            el.classList.add('changed');
+            setTimeout(() => el.classList.remove('changed'), 1800);
+        }
+
+        function resetRegs() {
+            regs = new Array(32).fill(0);
+            regs[2] = 10; regs[3] = 25; regs[4] = 7; regs[5] = 100;
+            renderRegs();
+        }
+
+        renderRegs();
+
+        // ── SIMULATOR INPUTS ──
+        const instrDefs = {
+            // R-type
+            ADD: { fmt: 'R', fields: ['rd', 'rs1', 'rs2'] },
+            SUB: { fmt: 'R', fields: ['rd', 'rs1', 'rs2'] },
+            AND: { fmt: 'R', fields: ['rd', 'rs1', 'rs2'] },
+            OR: { fmt: 'R', fields: ['rd', 'rs1', 'rs2'] },
+            XOR: { fmt: 'R', fields: ['rd', 'rs1', 'rs2'] },
+            SLL: { fmt: 'R', fields: ['rd', 'rs1', 'rs2'] },
+            SRL: { fmt: 'R', fields: ['rd', 'rs1', 'rs2'] },
+            // I-type
+            ADDI: { fmt: 'I', fields: ['rd', 'rs1', 'imm'] },
+            LW: { fmt: 'I', fields: ['rd', 'imm', 'rs1'], loadStore: true },
+            SLTI: { fmt: 'I', fields: ['rd', 'rs1', 'imm'] },
+            ANDI: { fmt: 'I', fields: ['rd', 'rs1', 'imm'] },
+            // S-type
+            SW: { fmt: 'S', fields: ['rs2', 'imm', 'rs1'], loadStore: true },
+            SH: { fmt: 'S', fields: ['rs2', 'imm', 'rs1'], loadStore: true },
+            SB: { fmt: 'S', fields: ['rs2', 'imm', 'rs1'], loadStore: true },
+            // B-type
+            BEQ: { fmt: 'B', fields: ['rs1', 'rs2', 'offset'] },
+            BNE: { fmt: 'B', fields: ['rs1', 'rs2', 'offset'] },
+            BLT: { fmt: 'B', fields: ['rs1', 'rs2', 'offset'] },
+            BGE: { fmt: 'B', fields: ['rs1', 'rs2', 'offset'] },
+            // U-type
+            LUI: { fmt: 'U', fields: ['rd', 'imm'] },
+            AUIPC: { fmt: 'U', fields: ['rd', 'imm'] },
+            // J-type
+            JAL: { fmt: 'J', fields: ['rd', 'offset'] },
+        };
+
+        const fmtColors = { R: '#f87171', I: '#fb923c', S: '#fbbf24', B: '#4ade80', U: '#38bdf8', J: '#c084fc' };
+
+        function updateInputs() {
+            const sel = document.getElementById('instr-sel').value;
+            const def = instrDefs[sel];
+            const container = document.getElementById('input-fields');
+            let html = '';
+
+            const fieldLabels = { rd: 'DESTINATION REG (rd)', rs1: 'SOURCE REG 1 (rs1)', rs2: 'SOURCE REG 2 (rs2)', imm: 'IMMEDIATE VALUE', offset: 'BRANCH/JUMP OFFSET' };
+            const fieldMax = { rd: 31, rs1: 31, rs2: 31, imm: 2047, offset: 4094 };
+            const fieldMin = { rd: 0, rs1: 0, rs2: 0, imm: -2048, offset: -4096 };
+
+            const fields = def.fields;
+            // Group pairs
+            for (let i = 0; i < fields.length; i += 2) {
+                if (i + 1 < fields.length) {
+                    html += `<div class="row-2">`;
+                }
+                const f = fields[i];
+                html += `<div>
       <label>${fieldLabels[f] || f.toUpperCase()}</label>
-      <input type="number" id="f-${f}" value="${f==='imm'?'5':f==='offset'?'8':'1'}" min="${fieldMin[f]||0}" max="${fieldMax[f]||31}" placeholder="${f==='imm'?'-2048 to 2047':f==='offset'?'must be even':'0-31'}">
+      <input type="number" id="f-${f}" value="${f === 'imm' ? '5' : f === 'offset' ? '8' : '1'}" min="${fieldMin[f] || 0}" max="${fieldMax[f] || 31}" placeholder="${f === 'imm' ? '-2048 to 2047' : f === 'offset' ? 'must be even' : '0-31'}">
     </div>`;
-    if (i + 1 < fields.length) {
-      const f2 = fields[i+1];
-      html += `<div>
+                if (i + 1 < fields.length) {
+                    const f2 = fields[i + 1];
+                    html += `<div>
         <label>${fieldLabels[f2] || f2.toUpperCase()}</label>
-        <input type="number" id="f-${f2}" value="${f2==='imm'?'5':f2==='offset'?'8':'2'}" min="${fieldMin[f2]||0}" max="${fieldMax[f2]||31}" placeholder="${f2==='imm'?'-2048 to 2047':f2==='offset'?'must be even':'0-31'}">
+        <input type="number" id="f-${f2}" value="${f2 === 'imm' ? '5' : f2 === 'offset' ? '8' : '2'}" min="${fieldMin[f2] || 0}" max="${fieldMax[f2] || 31}" placeholder="${f2 === 'imm' ? '-2048 to 2047' : f2 === 'offset' ? 'must be even' : '0-31'}">
       </div>`;
-      html += `</div>`;
-    }
-  }
-  if (fields.length % 2 !== 0 && fields.length > 1) { /* last field already rendered */ }
+                    html += `</div>`;
+                }
+            }
+            if (fields.length % 2 !== 0 && fields.length > 1) { /* last field already rendered */ }
 
-  container.innerHTML = html;
-}
+            container.innerHTML = html;
+        }
 
-updateInputs();
+        updateInputs();
 
-function getV(id, def=0) {
-  const el = document.getElementById(id);
-  return el ? parseInt(el.value) || def : def;
-}
+        function getV(id, def = 0) {
+            const el = document.getElementById(id);
+            return el ? parseInt(el.value) || def : def;
+        }
 
-function toBin(val, bits) {
-  if (val < 0) {
-    val = (1 << bits) + val;
-  }
-  return (val >>> 0).toString(2).padStart(bits, '0').slice(-bits);
-}
+        function toBin(val, bits) {
+            if (val < 0) {
+                val = (1 << bits) + val;
+            }
+            return (val >>> 0).toString(2).padStart(bits, '0').slice(-bits);
+        }
 
-function runSim() {
-  const sel = document.getElementById('instr-sel').value;
-  const def = instrDefs[sel];
-  const fmt = def.fmt;
+        function runSim() {
+            const sel = document.getElementById('instr-sel').value;
+            const def = instrDefs[sel];
+            const fmt = def.fmt;
 
-  let rd=0, rs1=0, rs2=0, imm=0, offset=0;
-  if (def.fields.includes('rd'))     rd     = Math.max(0, Math.min(31, getV('f-rd')));
-  if (def.fields.includes('rs1'))    rs1    = Math.max(0, Math.min(31, getV('f-rs1')));
-  if (def.fields.includes('rs2'))    rs2    = Math.max(0, Math.min(31, getV('f-rs2')));
-  if (def.fields.includes('imm'))    imm    = Math.max(-2048, Math.min(2047, getV('f-imm')));
-  if (def.fields.includes('offset')) offset = getV('f-offset');
+            let rd = 0, rs1 = 0, rs2 = 0, imm = 0, offset = 0;
+            if (def.fields.includes('rd')) rd = Math.max(0, Math.min(31, getV('f-rd')));
+            if (def.fields.includes('rs1')) rs1 = Math.max(0, Math.min(31, getV('f-rs1')));
+            if (def.fields.includes('rs2')) rs2 = Math.max(0, Math.min(31, getV('f-rs2')));
+            if (def.fields.includes('imm')) imm = Math.max(-2048, Math.min(2047, getV('f-imm')));
+            if (def.fields.includes('offset')) offset = getV('f-offset');
 
-  // Encoding per format
-  let bits32 = '';
-  let fieldBreak = [];
+            // Encoding per format
+            let bits32 = '';
+            let fieldBreak = [];
 
-  const opcodes = {
-    ADD:'0110011', SUB:'0110011', AND:'0110011', OR:'0110011',
-    XOR:'0110011', SLL:'0110011', SRL:'0110011',
-    ADDI:'0010011', LW:'0000011', SLTI:'0010011', ANDI:'0010011',
-    SW:'0100011', SH:'0100011', SB:'0100011',
-    BEQ:'1100011', BNE:'1100011', BLT:'1100011', BGE:'1100011',
-    LUI:'0110111', AUIPC:'0010111',
-    JAL:'1101111'
-  };
-  const funct3s = {
-    ADD:'000', SUB:'000', AND:'111', OR:'110', XOR:'100', SLL:'001', SRL:'101',
-    ADDI:'000', LW:'010', SLTI:'010', ANDI:'111',
-    SW:'010', SH:'001', SB:'000',
-    BEQ:'000', BNE:'001', BLT:'100', BGE:'101',
-    LUI:'', AUIPC:'', JAL:''
-  };
-  const funct7s = {
-    ADD:'0000000', SUB:'0100000', AND:'0000000', OR:'0000000',
-    XOR:'0000000', SLL:'0000000', SRL:'0000000'
-  };
+            const opcodes = {
+                ADD: '0110011', SUB: '0110011', AND: '0110011', OR: '0110011',
+                XOR: '0110011', SLL: '0110011', SRL: '0110011',
+                ADDI: '0010011', LW: '0000011', SLTI: '0010011', ANDI: '0010011',
+                SW: '0100011', SH: '0100011', SB: '0100011',
+                BEQ: '1100011', BNE: '1100011', BLT: '1100011', BGE: '1100011',
+                LUI: '0110111', AUIPC: '0010111',
+                JAL: '1101111'
+            };
+            const funct3s = {
+                ADD: '000', SUB: '000', AND: '111', OR: '110', XOR: '100', SLL: '001', SRL: '101',
+                ADDI: '000', LW: '010', SLTI: '010', ANDI: '111',
+                SW: '010', SH: '001', SB: '000',
+                BEQ: '000', BNE: '001', BLT: '100', BGE: '101',
+                LUI: '', AUIPC: '', JAL: ''
+            };
+            const funct7s = {
+                ADD: '0000000', SUB: '0100000', AND: '0000000', OR: '0000000',
+                XOR: '0000000', SLL: '0000000', SRL: '0000000'
+            };
 
-  const op = opcodes[sel];
-  const f3 = funct3s[sel] || '000';
-  const f7 = funct7s[sel] || '0000000';
+            const op = opcodes[sel];
+            const f3 = funct3s[sel] || '000';
+            const f7 = funct7s[sel] || '0000000';
 
-  if (fmt === 'R') {
-    bits32 = f7 + toBin(rs2,5) + toBin(rs1,5) + f3 + toBin(rd,5) + op;
-    fieldBreak = [
-      { name:'funct7', bits:f7, range:'[31:25]', color:'#c084fc' },
-      { name:'rs2',    bits:toBin(rs2,5), range:'[24:20]', color:'#f87171' },
-      { name:'rs1',    bits:toBin(rs1,5), range:'[19:15]', color:'#fb923c' },
-      { name:'funct3', bits:f3, range:'[14:12]', color:'#fbbf24' },
-      { name:'rd',     bits:toBin(rd,5),  range:'[11:7]',  color:'#4ade80' },
-      { name:'opcode', bits:op, range:'[6:0]',   color:'#38bdf8' },
-    ];
-  } else if (fmt === 'I') {
-    bits32 = toBin(imm,12) + toBin(rs1,5) + f3 + toBin(rd,5) + op;
-    fieldBreak = [
-      { name:'imm[11:0]', bits:toBin(imm,12), range:'[31:20]', color:'#38bdf8' },
-      { name:'rs1',       bits:toBin(rs1,5),  range:'[19:15]', color:'#fb923c' },
-      { name:'funct3',    bits:f3,            range:'[14:12]', color:'#fbbf24' },
-      { name:'rd',        bits:toBin(rd,5),   range:'[11:7]',  color:'#4ade80' },
-      { name:'opcode',    bits:op,            range:'[6:0]',   color:'#38bdf8' },
-    ];
-  } else if (fmt === 'S') {
-    const immB = toBin(imm, 12);
-    bits32 = immB.slice(0,7) + toBin(rs2,5) + toBin(rs1,5) + f3 + immB.slice(7) + op;
-    fieldBreak = [
-      { name:'imm[11:5]', bits:immB.slice(0,7), range:'[31:25]', color:'#38bdf8' },
-      { name:'rs2',        bits:toBin(rs2,5),    range:'[24:20]', color:'#f87171' },
-      { name:'rs1',        bits:toBin(rs1,5),    range:'[19:15]', color:'#fb923c' },
-      { name:'funct3',     bits:f3,              range:'[14:12]', color:'#fbbf24' },
-      { name:'imm[4:0]',   bits:immB.slice(7),   range:'[11:7]',  color:'#67e8f9' },
-      { name:'opcode',     bits:op,              range:'[6:0]',   color:'#38bdf8' },
-    ];
-  } else if (fmt === 'B') {
-    const offB = toBin(offset, 13);
-    const i12 = offB[0], i11 = offB[1], i10_5 = offB.slice(2,8), i4_1 = offB.slice(8,12);
-    bits32 = i12 + i10_5 + toBin(rs2,5) + toBin(rs1,5) + f3 + i4_1 + i11 + op;
-    fieldBreak = [
-      { name:'imm[12,10:5]', bits:i12+i10_5, range:'[31:25]', color:'#38bdf8' },
-      { name:'rs2',          bits:toBin(rs2,5), range:'[24:20]', color:'#f87171' },
-      { name:'rs1',          bits:toBin(rs1,5), range:'[19:15]', color:'#fb923c' },
-      { name:'funct3',       bits:f3,          range:'[14:12]', color:'#fbbf24' },
-      { name:'imm[4:1,11]',  bits:i4_1+i11,   range:'[11:7]',  color:'#67e8f9' },
-      { name:'opcode',       bits:op,          range:'[6:0]',   color:'#38bdf8' },
-    ];
-  } else if (fmt === 'U') {
-    const immU = Math.max(0, Math.min(0xFFFFF, getV('f-imm')));
-    bits32 = toBin(immU,20) + toBin(rd,5) + op;
-    fieldBreak = [
-      { name:'imm[31:12]', bits:toBin(immU,20), range:'[31:12]', color:'#38bdf8' },
-      { name:'rd',         bits:toBin(rd,5),    range:'[11:7]',  color:'#4ade80' },
-      { name:'opcode',     bits:op,             range:'[6:0]',   color:'#38bdf8' },
-    ];
-  } else if (fmt === 'J') {
-    const offJ = toBin(offset, 21);
-    const j20=offJ[0], j10_1=offJ.slice(10,20), j11=offJ[9], j19_12=offJ.slice(1,9);
-    bits32 = j20 + j10_1 + j11 + j19_12 + toBin(rd,5) + op;
-    fieldBreak = [
-      { name:'imm[20,10:1,11,19:12]', bits:j20+j10_1+j11+j19_12, range:'[31:12]', color:'#38bdf8' },
-      { name:'rd',    bits:toBin(rd,5), range:'[11:7]', color:'#4ade80' },
-      { name:'opcode', bits:op,         range:'[6:0]',  color:'#38bdf8' },
-    ];
-  }
+            if (fmt === 'R') {
+                bits32 = f7 + toBin(rs2, 5) + toBin(rs1, 5) + f3 + toBin(rd, 5) + op;
+                fieldBreak = [
+                    { name: 'funct7', bits: f7, range: '[31:25]', color: '#c084fc' },
+                    { name: 'rs2', bits: toBin(rs2, 5), range: '[24:20]', color: '#f87171' },
+                    { name: 'rs1', bits: toBin(rs1, 5), range: '[19:15]', color: '#fb923c' },
+                    { name: 'funct3', bits: f3, range: '[14:12]', color: '#fbbf24' },
+                    { name: 'rd', bits: toBin(rd, 5), range: '[11:7]', color: '#4ade80' },
+                    { name: 'opcode', bits: op, range: '[6:0]', color: '#38bdf8' },
+                ];
+            } else if (fmt === 'I') {
+                bits32 = toBin(imm, 12) + toBin(rs1, 5) + f3 + toBin(rd, 5) + op;
+                fieldBreak = [
+                    { name: 'imm[11:0]', bits: toBin(imm, 12), range: '[31:20]', color: '#38bdf8' },
+                    { name: 'rs1', bits: toBin(rs1, 5), range: '[19:15]', color: '#fb923c' },
+                    { name: 'funct3', bits: f3, range: '[14:12]', color: '#fbbf24' },
+                    { name: 'rd', bits: toBin(rd, 5), range: '[11:7]', color: '#4ade80' },
+                    { name: 'opcode', bits: op, range: '[6:0]', color: '#38bdf8' },
+                ];
+            } else if (fmt === 'S') {
+                const immB = toBin(imm, 12);
+                bits32 = immB.slice(0, 7) + toBin(rs2, 5) + toBin(rs1, 5) + f3 + immB.slice(7) + op;
+                fieldBreak = [
+                    { name: 'imm[11:5]', bits: immB.slice(0, 7), range: '[31:25]', color: '#38bdf8' },
+                    { name: 'rs2', bits: toBin(rs2, 5), range: '[24:20]', color: '#f87171' },
+                    { name: 'rs1', bits: toBin(rs1, 5), range: '[19:15]', color: '#fb923c' },
+                    { name: 'funct3', bits: f3, range: '[14:12]', color: '#fbbf24' },
+                    { name: 'imm[4:0]', bits: immB.slice(7), range: '[11:7]', color: '#67e8f9' },
+                    { name: 'opcode', bits: op, range: '[6:0]', color: '#38bdf8' },
+                ];
+            } else if (fmt === 'B') {
+                const offB = toBin(offset, 13);
+                const i12 = offB[0], i11 = offB[1], i10_5 = offB.slice(2, 8), i4_1 = offB.slice(8, 12);
+                bits32 = i12 + i10_5 + toBin(rs2, 5) + toBin(rs1, 5) + f3 + i4_1 + i11 + op;
+                fieldBreak = [
+                    { name: 'imm[12,10:5]', bits: i12 + i10_5, range: '[31:25]', color: '#38bdf8' },
+                    { name: 'rs2', bits: toBin(rs2, 5), range: '[24:20]', color: '#f87171' },
+                    { name: 'rs1', bits: toBin(rs1, 5), range: '[19:15]', color: '#fb923c' },
+                    { name: 'funct3', bits: f3, range: '[14:12]', color: '#fbbf24' },
+                    { name: 'imm[4:1,11]', bits: i4_1 + i11, range: '[11:7]', color: '#67e8f9' },
+                    { name: 'opcode', bits: op, range: '[6:0]', color: '#38bdf8' },
+                ];
+            } else if (fmt === 'U') {
+                const immU = Math.max(0, Math.min(0xFFFFF, getV('f-imm')));
+                bits32 = toBin(immU, 20) + toBin(rd, 5) + op;
+                fieldBreak = [
+                    { name: 'imm[31:12]', bits: toBin(immU, 20), range: '[31:12]', color: '#38bdf8' },
+                    { name: 'rd', bits: toBin(rd, 5), range: '[11:7]', color: '#4ade80' },
+                    { name: 'opcode', bits: op, range: '[6:0]', color: '#38bdf8' },
+                ];
+            } else if (fmt === 'J') {
+                const offJ = toBin(offset, 21);
+                const j20 = offJ[0], j10_1 = offJ.slice(10, 20), j11 = offJ[9], j19_12 = offJ.slice(1, 9);
+                bits32 = j20 + j10_1 + j11 + j19_12 + toBin(rd, 5) + op;
+                fieldBreak = [
+                    { name: 'imm[20,10:1,11,19:12]', bits: j20 + j10_1 + j11 + j19_12, range: '[31:12]', color: '#38bdf8' },
+                    { name: 'rd', bits: toBin(rd, 5), range: '[11:7]', color: '#4ade80' },
+                    { name: 'opcode', bits: op, range: '[6:0]', color: '#38bdf8' },
+                ];
+            }
 
-  // Compute result
-  let result = null, resultStr = '', execStr = '';
-  const A = regs[rs1], B = regs[rs2];
-  switch(sel) {
-    case 'ADD':  result = A+B;   execStr=`x${rs1}(${A}) + x${rs2}(${B}) = ${A+B}`; break;
-    case 'SUB':  result = A-B;   execStr=`x${rs1}(${A}) − x${rs2}(${B}) = ${A-B}`; break;
-    case 'AND':  result = A&B;   execStr=`x${rs1}(${A}) & x${rs2}(${B}) = ${A&B}`; break;
-    case 'OR':   result = A|B;   execStr=`x${rs1}(${A}) | x${rs2}(${B}) = ${A|B}`; break;
-    case 'XOR':  result = A^B;   execStr=`x${rs1}(${A}) ^ x${rs2}(${B}) = ${A^B}`; break;
-    case 'SLL':  result = A<<(B&31); execStr=`x${rs1}(${A}) << ${B&31} = ${A<<(B&31)}`; break;
-    case 'SRL':  result = A>>>(B&31); execStr=`x${rs1}(${A}) >>> ${B&31} = ${A>>>(B&31)}`; break;
-    case 'ADDI': result = A+imm; execStr=`x${rs1}(${A}) + ${imm} = ${A+imm}`; break;
-    case 'LW':   result = null;  execStr=`Load 4 bytes from Mem[x${rs1}(${A}) + ${imm}] → x${rd}`; resultStr='(Memory read — value depends on data memory)'; break;
-    case 'SLTI': result = A<imm?1:0; execStr=`x${rs1}(${A}) < ${imm} ? 1 : 0 = ${A<imm?1:0}`; break;
-    case 'ANDI': result = A&imm; execStr=`x${rs1}(${A}) & ${imm} = ${A&imm}`; break;
-    case 'SW':   execStr=`Store x${rs2}(${B}) → Mem[x${rs1}(${A}) + ${imm}] (no register write)`; break;
-    case 'SH':   execStr=`Store halfword x${rs2}[15:0] → Mem[x${rs1}(${A}) + ${imm}]`; break;
-    case 'SB':   execStr=`Store byte x${rs2}[7:0] → Mem[x${rs1}(${A}) + ${imm}]`; break;
-    case 'BEQ':  execStr=`x${rs1}(${A}) == x${rs2}(${B}) ? ${A===B?'BRANCH TAKEN → PC+='+offset:'NOT TAKEN → PC+4'}`; break;
-    case 'BNE':  execStr=`x${rs1}(${A}) ≠ x${rs2}(${B}) ? ${A!==B?'BRANCH TAKEN → PC+='+offset:'NOT TAKEN → PC+4'}`; break;
-    case 'BLT':  execStr=`x${rs1}(${A}) < x${rs2}(${B}) ? ${A<B?'BRANCH TAKEN → PC+='+offset:'NOT TAKEN → PC+4'}`; break;
-    case 'BGE':  execStr=`x${rs1}(${A}) ≥ x${rs2}(${B}) ? ${A>=B?'BRANCH TAKEN → PC+='+offset:'NOT TAKEN → PC+4'}`; break;
-    case 'LUI':  { const uimm=getV('f-imm'); result=uimm<<12; execStr=`${uimm} << 12 = 0x${(uimm<<12).toString(16).toUpperCase()}`; break; }
-    case 'AUIPC':{ const uimm=getV('f-imm'); result=1000+(uimm<<12); execStr=`PC(≈0x1000) + ${uimm} << 12 = 0x${(1000+(uimm<<12)).toString(16).toUpperCase()}`; break; }
-    case 'JAL':  result=1000+4; execStr=`x${rd} = PC+4 = 1004; PC = PC + ${offset}`; break;
-  }
+            // Compute result
+            let result = null, resultStr = '', execStr = '';
+            const A = regs[rs1], B = regs[rs2];
+            switch (sel) {
+                case 'ADD': result = A + B; execStr = `x${rs1}(${A}) + x${rs2}(${B}) = ${A + B}`; break;
+                case 'SUB': result = A - B; execStr = `x${rs1}(${A}) − x${rs2}(${B}) = ${A - B}`; break;
+                case 'AND': result = A & B; execStr = `x${rs1}(${A}) & x${rs2}(${B}) = ${A & B}`; break;
+                case 'OR': result = A | B; execStr = `x${rs1}(${A}) | x${rs2}(${B}) = ${A | B}`; break;
+                case 'XOR': result = A ^ B; execStr = `x${rs1}(${A}) ^ x${rs2}(${B}) = ${A ^ B}`; break;
+                case 'SLL': result = A << (B & 31); execStr = `x${rs1}(${A}) << ${B & 31} = ${A << (B & 31)}`; break;
+                case 'SRL': result = A >>> (B & 31); execStr = `x${rs1}(${A}) >>> ${B & 31} = ${A >>> (B & 31)}`; break;
+                case 'ADDI': result = A + imm; execStr = `x${rs1}(${A}) + ${imm} = ${A + imm}`; break;
+                case 'LW': result = null; execStr = `Load 4 bytes from Mem[x${rs1}(${A}) + ${imm}] → x${rd}`; resultStr = '(Memory read — value depends on data memory)'; break;
+                case 'SLTI': result = A < imm ? 1 : 0; execStr = `x${rs1}(${A}) < ${imm} ? 1 : 0 = ${A < imm ? 1 : 0}`; break;
+                case 'ANDI': result = A & imm; execStr = `x${rs1}(${A}) & ${imm} = ${A & imm}`; break;
+                case 'SW': execStr = `Store x${rs2}(${B}) → Mem[x${rs1}(${A}) + ${imm}] (no register write)`; break;
+                case 'SH': execStr = `Store halfword x${rs2}[15:0] → Mem[x${rs1}(${A}) + ${imm}]`; break;
+                case 'SB': execStr = `Store byte x${rs2}[7:0] → Mem[x${rs1}(${A}) + ${imm}]`; break;
+                case 'BEQ': execStr = `x${rs1}(${A}) == x${rs2}(${B}) ? ${A === B ? 'BRANCH TAKEN → PC+=' + offset : 'NOT TAKEN → PC+4'}`; break;
+                case 'BNE': execStr = `x${rs1}(${A}) ≠ x${rs2}(${B}) ? ${A !== B ? 'BRANCH TAKEN → PC+=' + offset : 'NOT TAKEN → PC+4'}`; break;
+                case 'BLT': execStr = `x${rs1}(${A}) < x${rs2}(${B}) ? ${A < B ? 'BRANCH TAKEN → PC+=' + offset : 'NOT TAKEN → PC+4'}`; break;
+                case 'BGE': execStr = `x${rs1}(${A}) ≥ x${rs2}(${B}) ? ${A >= B ? 'BRANCH TAKEN → PC+=' + offset : 'NOT TAKEN → PC+4'}`; break;
+                case 'LUI': { const uimm = getV('f-imm'); result = uimm << 12; execStr = `${uimm} << 12 = 0x${(uimm << 12).toString(16).toUpperCase()}`; break; }
+                case 'AUIPC': { const uimm = getV('f-imm'); result = 1000 + (uimm << 12); execStr = `PC(≈0x1000) + ${uimm} << 12 = 0x${(1000 + (uimm << 12)).toString(16).toUpperCase()}`; break; }
+                case 'JAL': result = 1000 + 4; execStr = `x${rd} = PC+4 = 1004; PC = PC + ${offset}`; break;
+            }
 
-  // Update register
-  const writesReg = !['SW','SH','SB','BEQ','BNE','BLT','BGE'].includes(sel);
-  if (writesReg && result !== null && rd !== 0) {
-    regs[rd] = result;
-    renderRegs();
-    flashReg(rd);
-  }
+            // Update register
+            const writesReg = !['SW', 'SH', 'SB', 'BEQ', 'BNE', 'BLT', 'BGE'].includes(sel);
+            if (writesReg && result !== null && rd !== 0) {
+                regs[rd] = result;
+                renderRegs();
+                flashReg(rd);
+            }
 
-  // Hex
-  const hexVal = '0x' + parseInt(bits32, 2).toString(16).toUpperCase().padStart(8,'0');
+            // Hex
+            const hexVal = '0x' + parseInt(bits32, 2).toString(16).toUpperCase().padStart(8, '0');
 
-  // Build binary groups of 4 bits
-  let binaryHTML = '';
-  for (let i = 0; i < 32; i += 4) {
-    binaryHTML += `<div class="b-group">`;
-    for (let j = i; j < i+4; j++) {
-      const b = bits32[j];
-      binaryHTML += `<div class="b-bit ${b==='1'?'one':'zero'}">${b}</div>`;
-    }
-    binaryHTML += `</div>`;
-  }
+            // Build binary groups of 4 bits
+            let binaryHTML = '';
+            for (let i = 0; i < 32; i += 4) {
+                binaryHTML += `<div class="b-group">`;
+                for (let j = i; j < i + 4; j++) {
+                    const b = bits32[j];
+                    binaryHTML += `<div class="b-bit ${b === '1' ? 'one' : 'zero'}">${b}</div>`;
+                }
+                binaryHTML += `</div>`;
+            }
 
-  // Field breakdown rows
-  let fbHTML = '';
-  fieldBreak.forEach(f => {
-    fbHTML += `<div class="fb-row">
+            // Field breakdown rows
+            let fbHTML = '';
+            fieldBreak.forEach(f => {
+                fbHTML += `<div class="fb-row">
       <span class="fb-key" style="color:${f.color}">${f.name} ${f.range}</span>
       <span class="fb-bin">${f.bits}</span>
-      <span class="fb-val">= ${parseInt(f.bits,2)}</span>
+      <span class="fb-val">= ${parseInt(f.bits, 2)}</span>
     </div>`;
-  });
+            });
 
-  const fmtColor = fmtColors[fmt];
+            const fmtColor = fmtColors[fmt];
 
-  document.getElementById('sim-output').innerHTML = `
+            document.getElementById('sim-output').innerHTML = `
     <div class="out-block">
       <div class="out-label">INSTRUCTION</div>
       <div class="out-val" style="font-size:18px;font-weight:700;color:var(--white)">${sel} &nbsp;<span style="color:${fmtColor};font-size:13px;border:1px solid ${fmtColor}44;padding:2px 8px;border-radius:5px;background:${fmtColor}15">${fmt}-Type</span></div>
@@ -1678,12 +2471,68 @@ function runSim() {
     <div class="out-block">
       <div class="out-label">EXECUTION RESULT</div>
       <div class="out-val" style="color:var(--green);font-family:'JetBrains Mono',monospace;font-size:13px">${execStr}</div>
-      ${result!==null && writesReg && rd!==0 ? `<div style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent)">✅ x${rd} updated → ${result}</div>` : ''}
-      ${rd===0 && writesReg ? `<div style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--yellow)">⚠️ rd = x0 — write ignored (x0 is hardwired to 0)</div>` : ''}
+      ${result !== null && writesReg && rd !== 0 ? `<div style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent)">✅ x${rd} updated → ${result}</div>` : ''}
+      ${rd === 0 && writesReg ? `<div style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--yellow)">⚠️ rd = x0 — write ignored (x0 is hardwired to 0)</div>` : ''}
     </div>
   `;
-}
-</script>
+
+            // Update Execution Cycle UI
+            updateCycleUI(sel, {
+                rd, rs1, rs2, imm, offset, fmt,
+                A, B, result, op, f3, f7, bits32, hexVal,
+                writesReg, execStr
+            });
+        }
+
+        function updateCycleUI(instr, d) {
+            // IF
+            document.getElementById('cycle-if-op').innerHTML = `IR ← Mem[PC]<br>PC ← PC + 4`;
+            document.getElementById('cycle-if-data').innerHTML = `PC = 0x1000 → fetch instruction<br><span style="color:var(--accent)">${d.hexVal}</span> at 0x1000`;
+
+            // ID
+            document.getElementById('cycle-id-ops').innerHTML = `A ← Reg[x${d.rs1}] (${d.A})<br>B ← Reg[x${d.rs2}] (${d.B})`;
+            document.getElementById('cycle-id-fields').innerHTML = `
+    <span style="color:var(--accent)">opcode: ${d.op}</span><br>
+    rd: x${d.rd}, rs1: x${d.rs1}, rs2: x${d.rs2}<br>
+    imm: ${d.imm || d.offset || 0}
+  `;
+            document.getElementById('cycle-id-ctrl').innerHTML = `
+    RegWrite: ${d.writesReg ? 'Yes' : 'No'}<br>
+    ALUSrc: ${d.fmt === 'R' || d.fmt === 'B' ? 'Register' : 'Immediate'}
+  `;
+
+            // EX
+            let aluOp = instr;
+            if (['LW', 'SW', 'SH', 'SB'].includes(instr)) aluOp = 'ADD (Addr Calc)';
+            document.getElementById('cycle-ex-op').innerHTML = `Operation: ${aluOp}`;
+            document.getElementById('cycle-ex-vals').innerHTML = `A = ${d.A}, B = ${d.fmt === 'R' || d.fmt === 'B' ? d.B : (d.imm || 0)}`;
+            document.getElementById('cycle-ex-math').innerHTML = `Result = ${d.result !== null ? d.result : 'N/A'}`;
+
+            // MEM
+            const isLoad = ['LW', 'LH', 'LB'].includes(instr);
+            const isStore = ['SW', 'SH', 'SB'].includes(instr);
+            if (isLoad) {
+                document.getElementById('cycle-mem-op').innerHTML = `LOAD: data ← Mem[${d.A} + ${d.imm}]`;
+                document.getElementById('cycle-mem-data').innerHTML = `Address ${d.A + d.imm} accessed`;
+            } else if (isStore) {
+                document.getElementById('cycle-mem-op').innerHTML = `STORE: Mem[${d.A} + ${d.imm}] ← ${d.B}`;
+                document.getElementById('cycle-mem-data').innerHTML = `Address ${d.A + d.imm} written`;
+            } else {
+                document.getElementById('cycle-mem-op').innerHTML = `None (Pass-through)`;
+                document.getElementById('cycle-mem-data').innerHTML = `No memory access`;
+            }
+
+            // WB
+            if (d.writesReg && d.rd !== 0) {
+                document.getElementById('cycle-wb-action').innerHTML = `Reg[x${d.rd}] ← ${d.result}`;
+                document.getElementById('cycle-wb-data').innerHTML = `x${d.rd} updated to ${d.result}`;
+            } else {
+                document.getElementById('cycle-wb-action').innerHTML = `No Register Write`;
+                document.getElementById('cycle-wb-data').innerHTML = d.rd === 0 && d.writesReg ? `x0 is hardwired to 0` : `Instruction does not write to RD`;
+            }
+        }
+    </script>
 
 </body>
+
 </html>
