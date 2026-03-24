@@ -745,7 +745,6 @@
         }
 
         /* ─── EXECUTION CYCLE ─── */
-        .cycle-wrap {}
 
         .pipeline-vis {
             display: grid;
@@ -1189,7 +1188,7 @@
         <div class="hero-chip">
             <div class="dot"></div>LIVE PROJECT DEMO
         </div>
-        <h1>RISC-V <span>Instruction Formats</span><br>& Execution Engine</h1>
+        <h1>RISC-V <span>Instruction Formats</span><br>& Execution Cycle</h1>
         <p class="hero-sub">// A complete interactive COA project — encode any instruction, visualize bit fields,
             simulate the 5-stage execution cycle, and trace register states.</p>
         <div class="author-bar">
@@ -1511,27 +1510,27 @@
                         </div>
                     </div>
                 </div>
-                ```
-
             </div>
 
-            <!-- Register State -->
-
-            <div class="card" style="margin-top:20px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                    <div>
-                        <div style="font-size:15px;font-weight:700;color:var(--white);">Register File State (x0–x15)
-                        </div>
-                        <div
-                            style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:3px;">
-                            // Updated after each RUN. x0 is always 0.</div>
-                    </div>
-                    <button class="run-btn" style="width:auto;padding:8px 16px;font-size:12px;" onclick="resetRegs()">↺
-                        Reset Registers</button>
-                </div>
-                <div class="reg-grid" id="reg-display"></div>
-            </div>
         </div>
+
+        <!-- Register State -->
+
+        <div class="card" style="margin-top:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div>
+                    <div style="font-size:15px;font-weight:700;color:var(--white);">Register File State (x0–x15)
+                    </div>
+                    <div
+                        style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:3px;">
+                        // Updated after each RUN. x0 is always 0.</div>
+                </div>
+                <button class="run-btn" style="width:auto;padding:8px 16px;font-size:12px;" onclick="resetSimulator()">↺
+                    Reset Simulator</button>
+            </div>
+            <div class="reg-grid" id="reg-display"></div>
+        </div>
+    </div>
     </div>
 
     <!-- ═══════════ EXECUTION CYCLE ═══════════ -->
@@ -2137,10 +2136,10 @@
                         </div>
                     </div>
                 </div>
-                ```
-
             </div>
+
         </div>
+    </div>
     </div>
 
     <footer>
@@ -2194,10 +2193,31 @@
             setTimeout(() => el.classList.remove('changed'), 1800);
         }
 
-        function resetRegs() {
+        function resetSimulator() {
             regs = new Array(32).fill(0);
             regs[2] = 10; regs[3] = 25; regs[4] = 7; regs[5] = 100;
             renderRegs();
+
+            // Clear output
+            const out = document.getElementById('sim-output');
+            if (out) {
+                out.innerHTML = `
+                    <div style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center;padding:40px 0;">
+                        ← Select an instruction and click RUN
+                    </div>`;
+            }
+
+            // Reset cycle UI
+            showStep(0);
+            // Clear live data
+            document.getElementById('cycle-if-data').innerHTML = 'PC = 0x1000 → fetch instruction → PC = 0x1004';
+            document.getElementById('cycle-id-fields').innerHTML = 'rs1=x0, rs2=x0, rd=x0, imm=0';
+            document.getElementById('cycle-id-ctrl').innerHTML = 'RegWrite: Yes, ALUSrc: Reg';
+            document.getElementById('cycle-ex-vals').innerHTML = 'A=0, B=0';
+            document.getElementById('cycle-ex-math').innerHTML = 'Result = A op B';
+            document.getElementById('cycle-mem-op').innerHTML = 'None (Pass-through)';
+            document.getElementById('cycle-mem-data').innerHTML = 'No memory address accessed';
+            document.getElementById('cycle-wb-data').innerHTML = 'x1 = 35';
         }
 
         renderRegs();
@@ -2212,11 +2232,20 @@
             XOR: { fmt: 'R', fields: ['rd', 'rs1', 'rs2'] },
             SLL: { fmt: 'R', fields: ['rd', 'rs1', 'rs2'] },
             SRL: { fmt: 'R', fields: ['rd', 'rs1', 'rs2'] },
+            SRA: { fmt: 'R', fields: ['rd', 'rs1', 'rs2'] },
+            SLT: { fmt: 'R', fields: ['rd', 'rs1', 'rs2'] },
+            SLTU: { fmt: 'R', fields: ['rd', 'rs1', 'rs2'] },
             // I-type
             ADDI: { fmt: 'I', fields: ['rd', 'rs1', 'imm'] },
             LW: { fmt: 'I', fields: ['rd', 'imm', 'rs1'], loadStore: true },
             SLTI: { fmt: 'I', fields: ['rd', 'rs1', 'imm'] },
+            SLTIU: { fmt: 'I', fields: ['rd', 'rs1', 'imm'] },
             ANDI: { fmt: 'I', fields: ['rd', 'rs1', 'imm'] },
+            ORI: { fmt: 'I', fields: ['rd', 'rs1', 'imm'] },
+            XORI: { fmt: 'I', fields: ['rd', 'rs1', 'imm'] },
+            SLLI: { fmt: 'I', fields: ['rd', 'rs1', 'imm'] },
+            SRLI: { fmt: 'I', fields: ['rd', 'rs1', 'imm'] },
+            SRAI: { fmt: 'I', fields: ['rd', 'rs1', 'imm'] },
             // S-type
             SW: { fmt: 'S', fields: ['rs2', 'imm', 'rs1'], loadStore: true },
             SH: { fmt: 'S', fields: ['rs2', 'imm', 'rs1'], loadStore: true },
@@ -2226,11 +2255,14 @@
             BNE: { fmt: 'B', fields: ['rs1', 'rs2', 'offset'] },
             BLT: { fmt: 'B', fields: ['rs1', 'rs2', 'offset'] },
             BGE: { fmt: 'B', fields: ['rs1', 'rs2', 'offset'] },
+            BLTU: { fmt: 'B', fields: ['rs1', 'rs2', 'offset'] },
+            BGEU: { fmt: 'B', fields: ['rs1', 'rs2', 'offset'] },
             // U-type
             LUI: { fmt: 'U', fields: ['rd', 'imm'] },
             AUIPC: { fmt: 'U', fields: ['rd', 'imm'] },
             // J-type
             JAL: { fmt: 'J', fields: ['rd', 'offset'] },
+            JALR: { fmt: 'I', fields: ['rd', 'rs1', 'imm'] },
         };
 
         const fmtColors = { R: '#f87171', I: '#fb923c', S: '#fbbf24', B: '#4ade80', U: '#38bdf8', J: '#c084fc' };
@@ -2284,7 +2316,15 @@
             return (val >>> 0).toString(2).padStart(bits, '0').slice(-bits);
         }
 
-        function runSim() {
+        const delay = ms => new Promise(res => setTimeout(res, ms));
+
+        async function runSim() {
+            const runBtn = document.querySelector('.sim-body .run-btn');
+            if (runBtn) {
+                runBtn.disabled = true;
+                runBtn.innerHTML = '⏳ EXECUTING...';
+            }
+
             const sel = document.getElementById('instr-sel').value;
             const def = instrDefs[sel];
             const fmt = def.fmt;
@@ -2301,24 +2341,25 @@
             let fieldBreak = [];
 
             const opcodes = {
-                ADD: '0110011', SUB: '0110011', AND: '0110011', OR: '0110011',
-                XOR: '0110011', SLL: '0110011', SRL: '0110011',
-                ADDI: '0010011', LW: '0000011', SLTI: '0010011', ANDI: '0010011',
+                ADD: '0110011', SUB: '0110011', AND: '0110011', OR: '0110011', XOR: '0110011', SLL: '0110011', SRL: '0110011', SRA: '0110011', SLT: '0110011', SLTU: '0110011',
+                ADDI: '0010011', SLTI: '0010011', SLTIU: '0010011', ANDI: '0010011', ORI: '0010011', XORI: '0010011', SLLI: '0010011', SRLI: '0010011', SRAI: '0010011',
+                LW: '0000011', LH: '0000011', LB: '0000011', LHU: '0000011', LBU: '0000011',
                 SW: '0100011', SH: '0100011', SB: '0100011',
-                BEQ: '1100011', BNE: '1100011', BLT: '1100011', BGE: '1100011',
+                BEQ: '1100011', BNE: '1100011', BLT: '1100011', BGE: '1100011', BLTU: '1100011', BGEU: '1100011',
                 LUI: '0110111', AUIPC: '0010111',
-                JAL: '1101111'
+                JAL: '1101111', JALR: '1100111'
             };
             const funct3s = {
-                ADD: '000', SUB: '000', AND: '111', OR: '110', XOR: '100', SLL: '001', SRL: '101',
-                ADDI: '000', LW: '010', SLTI: '010', ANDI: '111',
+                ADD: '000', SUB: '000', AND: '111', OR: '110', XOR: '100', SLL: '001', SRL: '101', SRA: '101', SLT: '010', SLTU: '011',
+                ADDI: '000', SLTI: '010', SLTIU: '011', ANDI: '111', ORI: '110', XORI: '100', SLLI: '001', SRLI: '101', SRAI: '101',
+                LW: '010', LH: '001', LB: '000', LHU: '101', LBU: '100',
                 SW: '010', SH: '001', SB: '000',
-                BEQ: '000', BNE: '001', BLT: '100', BGE: '101',
-                LUI: '', AUIPC: '', JAL: ''
+                BEQ: '000', BNE: '001', BLT: '100', BGE: '101', BLTU: '110', BGEU: '111',
+                LUI: '', AUIPC: '', JAL: '', JALR: '000'
             };
             const funct7s = {
-                ADD: '0000000', SUB: '0100000', AND: '0000000', OR: '0000000',
-                XOR: '0000000', SLL: '0000000', SRL: '0000000'
+                ADD: '0000000', SUB: '0100000', AND: '0000000', OR: '0000000', XOR: '0000000', SLL: '0000000', SRL: '0000000', SRA: '0100000', SLT: '0000000', SLTU: '0000000',
+                SLLI: '0000000', SRLI: '0000000', SRAI: '0100000'
             };
 
             const op = opcodes[sel];
@@ -2390,27 +2431,45 @@
             let result = null, resultStr = '', execStr = '';
             const A = regs[rs1], B = regs[rs2];
             switch (sel) {
-                case 'ADD': result = A + B; execStr = `x${rs1}(${A}) + x${rs2}(${B}) = ${A + B}`; break;
-                case 'SUB': result = A - B; execStr = `x${rs1}(${A}) − x${rs2}(${B}) = ${A - B}`; break;
-                case 'AND': result = A & B; execStr = `x${rs1}(${A}) & x${rs2}(${B}) = ${A & B}`; break;
-                case 'OR': result = A | B; execStr = `x${rs1}(${A}) | x${rs2}(${B}) = ${A | B}`; break;
-                case 'XOR': result = A ^ B; execStr = `x${rs1}(${A}) ^ x${rs2}(${B}) = ${A ^ B}`; break;
-                case 'SLL': result = A << (B & 31); execStr = `x${rs1}(${A}) << ${B & 31} = ${A << (B & 31)}`; break;
-                case 'SRL': result = A >>> (B & 31); execStr = `x${rs1}(${A}) >>> ${B & 31} = ${A >>> (B & 31)}`; break;
-                case 'ADDI': result = A + imm; execStr = `x${rs1}(${A}) + ${imm} = ${A + imm}`; break;
-                case 'LW': result = null; execStr = `Load 4 bytes from Mem[x${rs1}(${A}) + ${imm}] → x${rd}`; resultStr = '(Memory read — value depends on data memory)'; break;
-                case 'SLTI': result = A < imm ? 1 : 0; execStr = `x${rs1}(${A}) < ${imm} ? 1 : 0 = ${A < imm ? 1 : 0}`; break;
-                case 'ANDI': result = A & imm; execStr = `x${rs1}(${A}) & ${imm} = ${A & imm}`; break;
-                case 'SW': execStr = `Store x${rs2}(${B}) → Mem[x${rs1}(${A}) + ${imm}] (no register write)`; break;
-                case 'SH': execStr = `Store halfword x${rs2}[15:0] → Mem[x${rs1}(${A}) + ${imm}]`; break;
-                case 'SB': execStr = `Store byte x${rs2}[7:0] → Mem[x${rs1}(${A}) + ${imm}]`; break;
-                case 'BEQ': execStr = `x${rs1}(${A}) == x${rs2}(${B}) ? ${A === B ? 'BRANCH TAKEN → PC+=' + offset : 'NOT TAKEN → PC+4'}`; break;
-                case 'BNE': execStr = `x${rs1}(${A}) ≠ x${rs2}(${B}) ? ${A !== B ? 'BRANCH TAKEN → PC+=' + offset : 'NOT TAKEN → PC+4'}`; break;
-                case 'BLT': execStr = `x${rs1}(${A}) < x${rs2}(${B}) ? ${A < B ? 'BRANCH TAKEN → PC+=' + offset : 'NOT TAKEN → PC+4'}`; break;
-                case 'BGE': execStr = `x${rs1}(${A}) ≥ x${rs2}(${B}) ? ${A >= B ? 'BRANCH TAKEN → PC+=' + offset : 'NOT TAKEN → PC+4'}`; break;
-                case 'LUI': { const uimm = getV('f-imm'); result = uimm << 12; execStr = `${uimm} << 12 = 0x${(uimm << 12).toString(16).toUpperCase()}`; break; }
-                case 'AUIPC': { const uimm = getV('f-imm'); result = 1000 + (uimm << 12); execStr = `PC(≈0x1000) + ${uimm} << 12 = 0x${(1000 + (uimm << 12)).toString(16).toUpperCase()}`; break; }
+                case 'ADD': result = (A + B) | 0; execStr = `x${rs1}(${A}) + x${rs2}(${B}) = ${result}`; break;
+                case 'SUB': result = (A - B) | 0; execStr = `x${rs1}(${A}) − x${rs2}(${B}) = ${result}`; break;
+                case 'AND': result = A & B; execStr = `x${rs1}(${A}) & x${rs2}(${B}) = ${result}`; break;
+                case 'OR': result = A | B; execStr = `x${rs1}(${A}) | x${rs2}(${B}) = ${result}`; break;
+                case 'XOR': result = A ^ B; execStr = `x${rs1}(${A}) ^ x${rs2}(${B}) = ${result}`; break;
+                case 'SLL': result = A << (B & 31); execStr = `x${rs1}(${A}) << ${B & 31} = ${result}`; break;
+                case 'SRL': result = A >>> (B & 31); execStr = `x${rs1}(${A}) >>> ${B & 31} = ${result >>> 0}`; break;
+                case 'SRA': result = A >> (B & 31); execStr = `x${rs1}(${A}) >> ${B & 31} = ${result}`; break;
+                case 'SLT': result = A < B ? 1 : 0; execStr = `x${rs1}(${A}) < x${rs2}(${B}) ? 1 : 0 = ${result}`; break;
+                case 'SLTU': result = (A >>> 0) < (B >>> 0) ? 1 : 0; execStr = `(u)x${rs1} < (u)x${rs2} ? 1 : 0 = ${result}`; break;
+
+                case 'ADDI': result = (A + imm) | 0; execStr = `x${rs1}(${A}) + ${imm} = ${result}`; break;
+                case 'SLTI': result = A < imm ? 1 : 0; execStr = `x${rs1}(${A}) < ${imm} ? 1 : 0 = ${result}`; break;
+                case 'SLTIU': result = (A >>> 0) < (imm >>> 0) ? 1 : 0; execStr = `(u)x${rs1} < (u)${imm} ? 1 : 0 = ${result}`; break;
+                case 'ANDI': result = A & imm; execStr = `x${rs1}(${A}) & ${imm} = ${result}`; break;
+                case 'ORI': result = A | imm; execStr = `x${rs1}(${A}) | ${imm} = ${result}`; break;
+                case 'XORI': result = A ^ imm; execStr = `x${rs1}(${A}) ^ ${imm} = ${result}`; break;
+                case 'SLLI': result = A << (imm & 31); execStr = `x${rs1}(${A}) << ${imm & 31} = ${result}`; break;
+                case 'SRLI': result = A >>> (imm & 31); execStr = `x${rs1}(${A}) >>> ${imm & 31} = ${result >>> 0}`; break;
+                case 'SRAI': result = A >> (imm & 31); execStr = `x${rs1}(${A}) >> ${imm & 31} = ${result}`; break;
+
+                case 'LW': result = 0; execStr = `Load 4 bytes from Mem[x${rs1}(${A}) + ${imm}] → x${rd}`; resultStr = '(Memory read — using 0 for simulation)'; break;
+                case 'LH': result = 0; execStr = `Load 2 bytes (Sign-Ext) from Mem[x${rs1}(${A}) + ${imm}] → x${rd}`; break;
+                case 'LB': result = 0; execStr = `Load 1 byte (Sign-Ext) from Mem[x${rs1}(${A}) + ${imm}] → x${rd}`; break;
+                case 'SW': execStr = `Store x${rs2}(${B}) → Mem[x${rs1}(${A}) + ${imm}]`; break;
+                case 'SH': execStr = `Store halfword x${rs2} → Mem[x${rs1}(${A}) + ${imm}]`; break;
+                case 'SB': execStr = `Store byte x${rs2} → Mem[x${rs1}(${A}) + ${imm}]`; break;
+
+                case 'BEQ': execStr = `x${rs1}(${A}) == x${rs2}(${B}) ? ${A === B ? 'TAKEN → PC+=' + offset : 'NOT TAKEN'}`; break;
+                case 'BNE': execStr = `x${rs1}(${A}) ≠ x${rs2}(${B}) ? ${A !== B ? 'TAKEN → PC+=' + offset : 'NOT TAKEN'}`; break;
+                case 'BLT': execStr = `x${rs1}(${A}) < x${rs2}(${B}) ? ${A < B ? 'TAKEN → PC+=' + offset : 'NOT TAKEN'}`; break;
+                case 'BGE': execStr = `x${rs1}(${A}) ≥ x${rs2}(${B}) ? ${A >= B ? 'TAKEN → PC+=' + offset : 'NOT TAKEN'}`; break;
+                case 'BLTU': execStr = `(u)x${rs1} < (u)x${rs2} ? ${(A >>> 0) < (B >>> 0) ? 'TAKEN' : 'NOT TAKEN'}`; break;
+                case 'BGEU': execStr = `(u)x${rs1} ≥ (u)x${rs2} ? ${(A >>> 0) >= (B >>> 0) ? 'TAKEN' : 'NOT TAKEN'}`; break;
+
+                case 'LUI': result = (imm << 12); execStr = `${imm} << 12 = 0x${(result >>> 0).toString(16).toUpperCase()}`; break;
+                case 'AUIPC': result = (1000 + (imm << 12)) | 0; execStr = `PC(0x1000) + (${imm} << 12) = 0x${(result >>> 0).toString(16).toUpperCase()}`; break;
                 case 'JAL': result = 1000 + 4; execStr = `x${rd} = PC+4 = 1004; PC = PC + ${offset}`; break;
+                case 'JALR': result = 1000 + 4; execStr = `x${rd} = PC+4 = 1004; PC = (x${rs1} + ${imm}) & ~1`; break;
             }
 
             // Update register
@@ -2476,40 +2535,54 @@
     </div>
   `;
 
-            // Update Execution Cycle UI
-            updateCycleUI(sel, {
+            // Update Execution Cycle UI with animation
+            await updateCycleUIAnimated(sel, {
                 rd, rs1, rs2, imm, offset, fmt,
                 A, B, result, op, f3, f7, bits32, hexVal,
                 writesReg, execStr
             });
+
+            if (runBtn) {
+                runBtn.disabled = false;
+                runBtn.innerHTML = '▶ RUN INSTRUCTION';
+            }
         }
 
-        function updateCycleUI(instr, d) {
-            // IF
+        async function updateCycleUIAnimated(instr, d) {
+            const stageDelays = 600;
+
+            // Step 1: IF
+            showStep(0);
             document.getElementById('cycle-if-op').innerHTML = `IR ← Mem[PC]<br>PC ← PC + 4`;
             document.getElementById('cycle-if-data').innerHTML = `PC = 0x1000 → fetch instruction<br><span style="color:var(--accent)">${d.hexVal}</span> at 0x1000`;
+            await delay(stageDelays);
 
-            // ID
+            // Step 2: ID
+            showStep(1);
             document.getElementById('cycle-id-ops').innerHTML = `A ← Reg[x${d.rs1}] (${d.A})<br>B ← Reg[x${d.rs2}] (${d.B})`;
             document.getElementById('cycle-id-fields').innerHTML = `
-    <span style="color:var(--accent)">opcode: ${d.op}</span><br>
-    rd: x${d.rd}, rs1: x${d.rs1}, rs2: x${d.rs2}<br>
-    imm: ${d.imm || d.offset || 0}
-  `;
+                <span style="color:var(--accent)">opcode: ${d.op}</span><br>
+                rd: x${d.rd}, rs1: x${d.rs1}, rs2: x${d.rs2}<br>
+                imm: ${d.imm || d.offset || 0}
+            `;
             document.getElementById('cycle-id-ctrl').innerHTML = `
-    RegWrite: ${d.writesReg ? 'Yes' : 'No'}<br>
-    ALUSrc: ${d.fmt === 'R' || d.fmt === 'B' ? 'Register' : 'Immediate'}
-  `;
+                RegWrite: ${d.writesReg ? 'Yes' : 'No'}<br>
+                ALUSrc: ${d.fmt === 'R' || d.fmt === 'B' ? 'Register' : 'Immediate'}
+            `;
+            await delay(stageDelays);
 
-            // EX
+            // Step 3: EX
+            showStep(2);
             let aluOp = instr;
-            if (['LW', 'SW', 'SH', 'SB'].includes(instr)) aluOp = 'ADD (Addr Calc)';
+            if (['LW', 'LH', 'LB', 'SW', 'SH', 'SB'].includes(instr)) aluOp = 'ADD (Addr Calc)';
             document.getElementById('cycle-ex-op').innerHTML = `Operation: ${aluOp}`;
             document.getElementById('cycle-ex-vals').innerHTML = `A = ${d.A}, B = ${d.fmt === 'R' || d.fmt === 'B' ? d.B : (d.imm || 0)}`;
             document.getElementById('cycle-ex-math').innerHTML = `Result = ${d.result !== null ? d.result : 'N/A'}`;
+            await delay(stageDelays);
 
-            // MEM
-            const isLoad = ['LW', 'LH', 'LB'].includes(instr);
+            // Step 4: MEM
+            showStep(3);
+            const isLoad = ['LW', 'LH', 'LB', 'LHU', 'LBU'].includes(instr);
             const isStore = ['SW', 'SH', 'SB'].includes(instr);
             if (isLoad) {
                 document.getElementById('cycle-mem-op').innerHTML = `LOAD: data ← Mem[${d.A} + ${d.imm}]`;
@@ -2521,8 +2594,10 @@
                 document.getElementById('cycle-mem-op').innerHTML = `None (Pass-through)`;
                 document.getElementById('cycle-mem-data').innerHTML = `No memory access`;
             }
+            await delay(stageDelays);
 
-            // WB
+            // Step 5: WB
+            showStep(4);
             if (d.writesReg && d.rd !== 0) {
                 document.getElementById('cycle-wb-action').innerHTML = `Reg[x${d.rd}] ← ${d.result}`;
                 document.getElementById('cycle-wb-data').innerHTML = `x${d.rd} updated to ${d.result}`;
